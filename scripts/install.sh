@@ -14,6 +14,10 @@ if [ "$(id -u)" = 0 ] && [ -z "${1:-}" ]; then
     exit 2
 fi
 "$ROOT/scripts/stage.sh" "" "$PREFIX" "/usr/bin/env python3"
-echo "Installed qbible to $PREFIX"
+# Refresh menu and icon caches so the launcher appears straight away (best effort).
+command -v update-desktop-database >/dev/null && update-desktop-database -q "$PREFIX/share/applications" || true
+command -v gtk-update-icon-cache >/dev/null && [ -f "$PREFIX/share/icons/hicolor/index.theme" ] \
+    && gtk-update-icon-cache -q -t "$PREFIX/share/icons/hicolor" || true
+echo "Installed qbible to $PREFIX (with an app launcher: search for qbible in your applications)"
 case ":$PATH:" in *":$PREFIX/bin:"*) ;; *) echo "Note: add $PREFIX/bin to your PATH." ;; esac
 "$PREFIX/bin/qbible" --version

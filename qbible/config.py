@@ -37,6 +37,8 @@ SETTINGS: dict[str, Setting] = {
         Setting("search", "limit", "20", kind="int", help="Default number of search results"),
         Setting("server", "host", "127.0.0.1", help="Address the browser server listens on"),
         Setting("server", "port", "8737", kind="int", help="Port the browser server listens on"),
+        Setting("server", "exit_when_closed", "true", kind="bool",
+                help="Stop 'qbible serve' when all its browser pages are closed"),
     ]
 }
 

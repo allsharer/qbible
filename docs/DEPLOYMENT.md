@@ -16,6 +16,7 @@
 | Static files | Served only from the web directory. Paths are normalised and confined to it, and dotfiles and directory listings are refused. |
 | Logging | No access log (searches and reading are private). Internal errors are printed to stderr without request bodies. |
 | Privileges | Runs as the invoking user and never needs root. |
+| Browser-presence watchdog | By default the server stops once all its pages are closed. Pages send `POST /api/v1/heartbeat` (subject to the same CSRF checks, so other sites cannot stop it). It is armed only by a page's first heartbeat and is off with `--keep-running`, with `server.exit_when_closed = false`, or on non-loopback addresses. |
 
 The tests in `tests/test_server.py` and `tests/browser/` exercise these controls.
 
@@ -28,12 +29,16 @@ The architecture allows a public deployment of the browser interface. Recommende
    needed**. Do not add accounts or password storage without a real requirement. If they are
    ever added, use a vetted framework, strong password hashing (Argon2id), CSRF tokens and
    rate limiting.
-2. **Process**: run `qbible serve --host 127.0.0.1 --port 8737 --no-user-data` as an
-   unprivileged system user under systemd, for example:
+2. **Process**: run `qbible serve --host 127.0.0.1 --port 8737 --no-user-data --keep-running`
+   as an unprivileged system user under systemd. **`--keep-running` is essential.** Without it,
+   the browser-presence watchdog would stop the service as soon as visitors' pages close, and any
+   visitor could end it on purpose. The watchdog is switched off automatically when listening on
+   a non-loopback address, but a reverse proxy normally forwards to loopback, so pass the flag
+   explicitly. For example:
 
    ```ini
    [Service]
-   ExecStart=/usr/bin/qbible serve --host 127.0.0.1 --port 8737 --no-user-data
+   ExecStart=/usr/bin/qbible serve --host 127.0.0.1 --port 8737 --no-user-data --keep-running
    User=qbible
    Environment=QBIBLE_DATA_HOME=/var/lib/qbible QBIBLE_CONFIG_HOME=/etc/qbible
    NoNewPrivileges=yes

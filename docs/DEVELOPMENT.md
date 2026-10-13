@@ -19,6 +19,13 @@ Use temporary directories during development so that your own bookmarks are unto
 export QBIBLE_DATA_HOME=/tmp/qb/data QBIBLE_CONFIG_HOME=/tmp/qb/config
 ```
 
+`qbible serve` stops by itself when its browser pages close. Use `--keep-running` while working
+with `curl` or other API clients. To make the watchdog fast for tests, set
+`QBIBLE_WATCHDOG_TIMEOUTS=visible,hidden,grace` in seconds (defaults `15,150,5`; must satisfy
+grace ≤ visible ≤ hidden). Puppeteer tip: in a background tab, use
+`waitForFunction(..., { polling: 100 })` and `bringToFront()` before clicking, because
+`requestAnimationFrame` does not run in hidden tabs.
+
 ## Code map and conventions
 
 See [ARCHITECTURE.md](ARCHITECTURE.md). The rules are:
@@ -52,6 +59,7 @@ make test                                 # everything
 | `test_userdata.py` | bookmarks (deduplication, labels), history, migrations, refusing newer schemas, file permissions |
 | `test_importer.py` | TSV/VPL import, validation, malformed input, atomicity, adding a translation without breaking the KJV, CLI import/remove |
 | `test_server.py` | every API endpoint, CSRF defences, Host checks, security headers, path traversal, body limits, loopback-only binding, user-data-disabled mode |
+| `test_watchdog.py` | lease rules with a fake clock (visible, hidden, closing, reloads, several pages), plus real `qbible serve` processes: stops only after pages close, `--keep-running`, config setting, CSRF on heartbeats, refusal on non-loopback addresses |
 | `tests/browser/` | navigation, URLs, Back/Forward, search and results, references, XSS, font size/family, themes, persistence, bookmarks, history, copying, keyboard, responsive layout, print, offline (no external requests), localStorage mode |
 
 ## Building and releasing
@@ -74,6 +82,21 @@ user, and keeps per-user data in XDG directories.
 Testing a real system installation needs root: `sudo apt install ./dist/qbible_*.deb`, then
 `qbible --version`, then `sudo apt remove qbible`. `make test-deb` covers everything that can be
 checked without root.
+
+## App launcher and icon
+
+`packaging/qbible.desktop.in` is the desktop entry template (`@BINDIR@` is replaced by
+`scripts/stage.sh`). The icon source is `packaging/icons/qbible.svg`. After editing it,
+regenerate the committed PNGs (16–512 px, rendered by the local Chrome) and the favicon:
+
+```sh
+node tools/render-icons.mjs
+cp packaging/icons/qbible.svg web/assets/icon.svg
+```
+
+`make test-deb` validates the desktop entry (`desktop-file-validate`) and the icon sizes. The
+Debian package relies on dpkg triggers to refresh the icon and desktop caches, and
+`scripts/install.sh` refreshes them for per-user installs.
 
 ## Database changes
 

@@ -75,6 +75,7 @@
 | `qbible/services.py` | `BibleService`: the single entry point for all interfaces; JSON payloads. |
 | `qbible/cli.py`, `interactive.py`, `termfmt.py`, `completion.py` | Command-line interface. |
 | `qbible/server.py` | HTTP server, routing, security controls. |
+| `qbible/watchdog.py`, `web/assets/js/heartbeat.js` | Browser-presence watchdog: pages hold short leases renewed by heartbeats (longer for hidden, throttled tabs; short when closing). The server shuts down when, after the first heartbeat, no page holds a lease. |
 | `qbible/paths.py`, `config.py` | File locations (XDG, overrides) and `config.ini`. |
 | `web/` | Browser interface (`index.html`, `assets/css/app.css`, `assets/js/*.js`). |
 | `data/sources/` | Vendored KJV source archive, its notice, and `SOURCES.json` (URL, checksum, metadata). |

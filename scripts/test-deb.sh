@@ -15,7 +15,10 @@ dpkg-deb --field "$DEB" Package Version Architecture Depends
 LIST=$(dpkg-deb --contents "$DEB")
 for f in ./usr/bin/qbible ./usr/share/qbible/translations/kjv.sqlite ./usr/share/qbible/web/index.html \
          ./usr/share/qbible/python/qbible/cli.py ./usr/share/man/man1/qbible.1.gz \
-         ./usr/share/bash-completion/completions/qbible ./usr/share/doc/qbible/copyright; do
+         ./usr/share/bash-completion/completions/qbible ./usr/share/doc/qbible/copyright \
+         ./usr/share/applications/qbible.desktop ./usr/share/icons/hicolor/scalable/apps/qbible.svg \
+         ./usr/share/icons/hicolor/16x16/apps/qbible.png ./usr/share/icons/hicolor/48x48/apps/qbible.png \
+         ./usr/share/icons/hicolor/256x256/apps/qbible.png ./usr/share/icons/hicolor/512x512/apps/qbible.png; do
     echo "$LIST" | grep -q " $f\$" || fail "missing $f"
 done
 pass "expected files present"
@@ -33,6 +36,18 @@ if command -v lintian >/dev/null; then
 fi
 
 dpkg-deb -x "$DEB" "$WORK/root"
+
+DESKTOP="$WORK/root/usr/share/applications/qbible.desktop"
+if command -v desktop-file-validate >/dev/null; then
+    desktop-file-validate "$DESKTOP" || fail "desktop entry does not validate"
+fi
+grep -qx 'Exec=/usr/bin/qbible serve --open --exit-when-closed' "$DESKTOP" || fail "desktop Exec line"
+grep -qx 'Icon=qbible' "$DESKTOP" || fail "desktop Icon line"
+for png in "$WORK"/root/usr/share/icons/hicolor/*/apps/qbible.png; do
+    size=$(basename "$(dirname "$(dirname "$png")")")
+    file "$png" | grep -q "PNG image data, ${size%x*} x ${size#*x}," || fail "icon $size has wrong dimensions"
+done
+pass "app launcher: valid desktop entry and icons ($(ls "$WORK"/root/usr/share/icons/hicolor | tr '\n' ' '))"
 export QBIBLE_DATA_HOME="$WORK/data" QBIBLE_CONFIG_HOME="$WORK/config"
 Q="$WORK/root/usr/bin/qbible"
 "$Q" --version

@@ -20,8 +20,10 @@ Trust boundary and security controls (see docs/DEPLOYMENT.md):
 
 from __future__ import annotations
 
+import errno
 import ipaddress
 import json
+import urllib.request
 import mimetypes
 import posixpath
 import signal
@@ -46,6 +48,7 @@ from .errors import (
 )
 from .paths import Locations
 from .services import BibleService
+from .watchdog import Watchdog
 
 API_PREFIX = "/api/v1/"
 API_VERSION = 1
@@ -81,6 +84,27 @@ MIME = {
 }
 
 
+STARTUP_ALLOWANCE = 60.0  # seconds for an auto-opened browser to connect
+
+
+class PortInUseError(DataError):
+    pass
+
+
+def running_instance(host: str, port: int) -> str | None:
+    """URL of a qbible server already listening on host:port, if any."""
+    if not port:
+        return None
+    shown = "127.0.0.1" if host in ("127.0.0.1", "localhost") else host
+    base = f"http://{shown}:{port}/"
+    try:
+        with urllib.request.urlopen(base + "api/v1/info", timeout=2) as r:
+            info = json.loads(r.read().decode("utf-8"))
+    except (OSError, ValueError):
+        return None
+    return base if isinstance(info, dict) and info.get("app") == "qbible" else None
+
+
 class HTTPError(Exception):
     def __init__(self, status: int, code: str, message: str):
         super().__init__(message)
@@ -111,11 +135,12 @@ class App:
     """Request routing, independent of the HTTP server plumbing (easy to test)."""
 
     def __init__(self, service: BibleService, web_dir: Path, *, user_data: bool = True,
-                 allowed_hosts: set[str] | None = None):
+                 allowed_hosts: set[str] | None = None, watchdog: Watchdog | None = None):
         self.service = service
         self.web_dir = Path(web_dir).resolve()
         self.user_data = user_data
         self.allowed_hosts = allowed_hosts  # None = do not check
+        self.watchdog = watchdog  # None = keep running when pages are closed
 
     # -- API ---------------------------------------------------------------------
     def api(self, method: str, path: str, query: dict, body: dict | None):
@@ -133,9 +158,12 @@ class App:
 
         if method == "GET":
             if parts == ["info"]:
+                wd = self.watchdog
                 return {
                     "app": "qbible", "version": __version__, "api_version": API_VERSION,
                     "user_data": self.user_data, "default_translation": svc.default_translation,
+                    # Pages send heartbeats only when the server stops after they close.
+                    "watchdog": {"interval_ms": wd.interval_ms} if wd else None,
                 }
             if parts == ["translations"]:
                 return {"translations": svc.translations(), "default": svc.default_translation}
@@ -172,6 +200,18 @@ class App:
                 if testament not in (None, "OT", "NT"):
                     raise HTTPError(400, "invalid_parameter", "testament must be OT or NT.")
                 return svc.random_verse(t, testament).to_dict()
+
+        if method == "POST" and parts == ["heartbeat"]:
+            client = (body or {}).get("client")
+            if not Watchdog.valid_client(client):
+                raise HTTPError(400, "invalid_body", "'client' must be a short id.")
+            visible = (body or {}).get("visible", True)
+            closing = (body or {}).get("closing", False)
+            if not isinstance(visible, bool) or not isinstance(closing, bool):
+                raise HTTPError(400, "invalid_body", "'visible' and 'closing' must be true or false.")
+            if self.watchdog:
+                self.watchdog.heartbeat(client, visible=visible, closing=closing)
+            return {"watchdog": self.watchdog is not None}
 
         if parts[:1] == ["user"]:
             if not self.user_data:
@@ -415,7 +455,8 @@ def create_server(service: BibleService, web_dir: Path, host: str = "127.0.0.1",
     try:
         httpd = server_cls((host.strip("[]"), port), make_handler(app))
     except OSError as e:
-        raise DataError(f"Cannot listen on {host}:{port}: {e.strerror or e}") from None
+        cls = PortInUseError if e.errno == errno.EADDRINUSE else DataError
+        raise cls(f"Cannot listen on {host}:{port}: {e.strerror or e}") from None
     real_port = httpd.server_address[1]
     if allowed is not None:
         for h in ("127.0.0.1", "localhost", "[::1]"):
@@ -425,9 +466,19 @@ def create_server(service: BibleService, web_dir: Path, host: str = "127.0.0.1",
 
 
 def serve(service: BibleService, locs: Locations, *, host: str, port: int, open_browser: bool = False,
-          allow_remote: bool = False, user_data: bool = True, out=None) -> int:
+          allow_remote: bool = False, user_data: bool = True, exit_when_closed: bool = False,
+          watchdog_timeouts: dict | None = None, out=None) -> int:
     out = out or sys.stderr
-    httpd = create_server(service, locs.web, host, port, allow_remote=allow_remote, user_data=user_data)
+    try:
+        httpd = create_server(service, locs.web, host, port, allow_remote=allow_remote, user_data=user_data)
+    except PortInUseError:
+        existing = running_instance(host, port) if open_browser else None
+        if existing is None:
+            raise
+        # e.g. the app launcher clicked again: reuse the running server.
+        print(f"qbible is already running at {existing}; opening it in your browser.", file=out, flush=True)
+        webbrowser.open(existing)
+        return 0
     shown = "127.0.0.1" if host in ("127.0.0.1", "localhost") else host
     if ":" in shown and not shown.startswith("["):
         shown = f"[{shown}]"
@@ -436,7 +487,28 @@ def serve(service: BibleService, locs: Locations, *, host: str, port: int, open_
     if not is_loopback(host):
         print("WARNING: listening on a non-loopback address. Anyone who can reach this machine "
               "can use it. Put it behind an HTTPS reverse proxy for public use.", file=out)
-    print("Press Ctrl+C to stop.", file=out, flush=True)
+
+    stopped_by_watchdog = threading.Event()
+    watchdog = None
+    if exit_when_closed:
+        def on_idle():
+            stopped_by_watchdog.set()
+            # shutdown() waits for serve_forever() to return, so run it off this thread.
+            threading.Thread(target=httpd.shutdown, daemon=True).start()
+
+        timeouts = dict(watchdog_timeouts or {})
+        startup = timeouts.pop("startup_allowance", STARTUP_ALLOWANCE)
+        watchdog = Watchdog(on_idle, **timeouts)
+        if open_browser:
+            # We open the browser ourselves, so expect a page soon; otherwise a
+            # launcher-started server would run unseen in the background forever.
+            watchdog.expect_connection(startup)
+        httpd.app.watchdog = watchdog  # type: ignore[attr-defined]
+        watchdog.start()
+        print("The server stops automatically when all qbible browser pages are closed "
+              "(or press Ctrl+C).", file=out, flush=True)
+    else:
+        print("Press Ctrl+C to stop.", file=out, flush=True)
     if open_browser:
         threading.Timer(0.3, lambda: webbrowser.open(url)).start()
 
@@ -449,8 +521,16 @@ def serve(service: BibleService, locs: Locations, *, host: str, port: int, open_
         pass
     try:
         httpd.serve_forever()
+        if stopped_by_watchdog.is_set():
+            if watchdog.page_connected:
+                print("All qbible browser pages were closed; the server has stopped.", file=out)
+            else:
+                print("No browser page connected after opening the browser; the server has stopped.",
+                      file=out)
     except KeyboardInterrupt:
         print("\nStopped.", file=out)
     finally:
+        if watchdog:
+            watchdog.stop()
         httpd.server_close()
     return 0

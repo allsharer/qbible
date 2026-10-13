@@ -471,13 +471,45 @@ def cmd_config(ctx: Context) -> int:
 
 
 def cmd_serve(ctx: Context) -> int:
-    from .server import serve
+    from .server import is_loopback, serve
 
     a = ctx.args
     host = a.host or ctx.config.get("server.host")
     port = a.port if a.port is not None else ctx.config.get_int("server.port")
+    exit_when_closed = ctx.config.get_bool("server.exit_when_closed")
+    if a.exit_when_closed is not None:
+        exit_when_closed = a.exit_when_closed
+    if exit_when_closed and not is_loopback(host):
+        # A shared server must not stop when one visitor closes a page (or be
+        # stopped deliberately by one).
+        if a.exit_when_closed:
+            raise CLIError("--exit-when-closed is only available on a loopback address.")
+        exit_when_closed = False
     return serve(ctx.service, ctx.locs, host=host, port=port, open_browser=a.open,
-                 allow_remote=a.allow_remote, user_data=not a.no_user_data, out=ctx.err)
+                 allow_remote=a.allow_remote, user_data=not a.no_user_data,
+                 exit_when_closed=exit_when_closed, watchdog_timeouts=_watchdog_timeouts(),
+                 out=ctx.err)
+
+
+def _watchdog_timeouts() -> dict | None:
+    """``QBIBLE_WATCHDOG_TIMEOUTS=visible,hidden,grace[,startup]`` (seconds) — for tests and tuning."""
+    raw = os.environ.get("QBIBLE_WATCHDOG_TIMEOUTS")
+    if not raw:
+        return None
+    usage = "QBIBLE_WATCHDOG_TIMEOUTS must be visible,hidden,grace[,startup] in seconds"
+    try:
+        values = [float(x) for x in raw.split(",")]
+    except ValueError:
+        raise CLIError(usage) from None
+    if len(values) not in (3, 4):
+        raise CLIError(usage)
+    visible, hidden, grace = values[:3]
+    if not (0 < grace <= visible <= hidden) or (len(values) == 4 and values[3] <= 0):
+        raise CLIError("QBIBLE_WATCHDOG_TIMEOUTS must satisfy 0 < grace <= visible <= hidden, startup > 0")
+    out = {"visible_timeout": visible, "hidden_timeout": hidden, "close_grace": grace}
+    if len(values) == 4:
+        out["startup_allowance"] = values[3]
+    return out
 
 
 def cmd_shell(ctx: Context) -> int:
@@ -614,6 +646,12 @@ def build_parser() -> argparse.ArgumentParser:
                     help="permit listening on a non-loopback address (see docs/DEPLOYMENT.md)")
     sp.add_argument("--no-user-data", action="store_true",
                     help="disable server-side bookmarks/history (browser keeps its own)")
+    w = sp.add_mutually_exclusive_group()
+    w.add_argument("--exit-when-closed", dest="exit_when_closed", action="store_true", default=None,
+                   help="stop when all qbible browser pages are closed (default; "
+                        "config: server.exit_when_closed)")
+    w.add_argument("--keep-running", dest="exit_when_closed", action="store_false",
+                   help="keep running after pages are closed (use for shared or public servers)")
     sp.set_defaults(func=cmd_serve)
 
     sp = add("translations", "list installed translations")
@@ -671,6 +709,7 @@ def main(argv: list[str] | None = None, out=None, err=None) -> int:
         with contextlib.redirect_stdout(out or sys.stdout), contextlib.redirect_stderr(err):
             args = parser.parse_args(argv)
     except SystemExit as e:  # argparse: --help/--version (0) or usage error (2)
+        _flush_stdout_quietly()
         return int(e.code or 0)
     for attr, default in (("translation", None), ("colour", None), ("plain", False)):
         if not hasattr(args, attr):
@@ -701,10 +740,26 @@ def main(argv: list[str] | None = None, out=None, err=None) -> int:
         print("", file=err)
         return EXIT_INTERRUPTED
     except BrokenPipeError:
-        # Output was piped to a program that stopped reading (e.g. head).
-        try:
-            devnull = os.open(os.devnull, os.O_WRONLY)
-            os.dup2(devnull, sys.stdout.fileno())
-        except (OSError, ValueError):
-            pass
+        _discard_stdout()
         return EXIT_OK
+    finally:
+        _flush_stdout_quietly()
+
+
+def _discard_stdout() -> None:
+    """Output was piped to a program that stopped reading (e.g. head): send the
+    rest to /dev/null so Python does not complain when it flushes at exit."""
+    try:
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, sys.stdout.fileno())
+    except (OSError, ValueError):
+        pass
+
+
+def _flush_stdout_quietly() -> None:
+    try:
+        sys.stdout.flush()
+    except BrokenPipeError:
+        _discard_stdout()
+    except (OSError, ValueError):
+        pass

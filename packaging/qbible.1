@@ -1,4 +1,4 @@
-.TH QBIBLE 1 "October 2026" "qbible 1.1.0" "User Commands"
+.TH QBIBLE 1 "October 2026" "qbible 1.2.0" "User Commands"
 .SH NAME
 qbible \- a modern, ad-free Bible reader (King James Version)
 .SH SYNOPSIS
@@ -45,8 +45,10 @@ Show or clear the reading history.
 .B shell
 Interactive reading mode (type \fBhelp\fR inside it).
 .TP
-.BR serve " [\fB\-\-port\fR N] [\fB\-\-open\fR]"
-Start the browser interface on http://127.0.0.1:8737/ (local only).
+.BR serve " [\fB\-\-port\fR N] [\fB\-\-open\fR] [\fB\-\-keep\-running\fR]"
+Start the browser interface on http://127.0.0.1:8737/ (local only). The server stops by
+itself a few seconds after the last qbible browser page is closed; \fB\-\-keep\-running\fR
+(or \fBqbible config set server.exit_when_closed false\fR) disables this.
 .TP
 .BR translations ", " import ", " remove\-translation ", " validate
 Manage and check translations.

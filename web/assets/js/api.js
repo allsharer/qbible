@@ -10,14 +10,14 @@ export class ApiError extends Error {
 
 const BASE = "/api/v1/";
 
-async function request(method, path, params, body) {
+async function request(method, path, params, body, { keepalive = false } = {}) {
   const url = new URL(BASE + path, window.location.origin);
   if (params) {
     for (const [k, v] of Object.entries(params)) {
       if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, String(v));
     }
   }
-  const init = { method, headers: { Accept: "application/json" }, credentials: "same-origin" };
+  const init = { method, headers: { Accept: "application/json" }, credentials: "same-origin", keepalive };
   if (method !== "GET") {
     init.headers["X-QBible-Request"] = "1";
     init.headers["Content-Type"] = "application/json";
@@ -47,6 +47,8 @@ export const api = {
   references: (t, text) => request("GET", "references", { t, text }),
   search: (t, params) => request("GET", "search", { t, ...params }),
   random: (t) => request("GET", "random", { t }),
+  heartbeat: (client, visible, closing) =>
+    request("POST", "heartbeat", null, { client, visible, closing }, { keepalive: closing }),
   user: {
     bookmarks: () => request("GET", "user/bookmarks"),
     addBookmark: (translation, ref, label) => request("POST", "user/bookmarks", null, { translation, ref, label }),

@@ -30,7 +30,7 @@ class IsolatedEnv:
     """Temporary QBIBLE_DATA_HOME / QBIBLE_CONFIG_HOME for the duration of a test."""
 
     VARS = ("QBIBLE_DATA_HOME", "QBIBLE_CONFIG_HOME", "QBIBLE_TRANSLATIONS_PATH", "NO_COLOR",
-            "QBIBLE_SHARE_DIR", "QBIBLE_WEB_DIR")
+            "QBIBLE_SHARE_DIR", "QBIBLE_WEB_DIR", "BROWSER")
 
     def __enter__(self):
         self.tmp = Path(tempfile.mkdtemp(prefix="qbible-test-"))

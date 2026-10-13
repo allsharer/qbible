@@ -4,6 +4,7 @@
 #   scripts/stage.sh DESTROOT PREFIX [LAUNCHER_SHEBANG]
 #
 # Produces DESTROOT/PREFIX/{bin/qbible, share/qbible/{python,web,translations},
+# share/applications/qbible.desktop, share/icons/hicolor/*/apps/qbible.{png,svg},
 # share/man/man1/qbible.1.gz, share/bash-completion/completions/qbible,
 # share/doc/qbible/...}. Used by build-deb.sh and install.sh.
 set -eu
@@ -40,6 +41,16 @@ chmod 0644 "$SHARE/translations/kjv.sqlite"
 sed "1s|.*|#!$SHEBANG|" "$ROOT/packaging/qbible.launcher" > "$T/bin/qbible"
 chmod 0755 "$T/bin/qbible"
 
+# Desktop entry (app drawer) and icons in the freedesktop hicolor theme.
+mkdir -p "$T/share/applications" "$T/share/icons/hicolor/scalable/apps"
+sed "s|@BINDIR@|$PREFIX/bin|" "$ROOT/packaging/qbible.desktop.in" > "$T/share/applications/qbible.desktop"
+cp "$ROOT/packaging/icons/qbible.svg" "$T/share/icons/hicolor/scalable/apps/qbible.svg"
+for png in "$ROOT"/packaging/icons/hicolor/*/apps/qbible.png; do
+    size=$(basename "$(dirname "$(dirname "$png")")")
+    mkdir -p "$T/share/icons/hicolor/$size/apps"
+    cp "$png" "$T/share/icons/hicolor/$size/apps/qbible.png"
+done
+
 gzip -9n -c "$ROOT/packaging/qbible.1" > "$T/share/man/man1/qbible.1.gz"
 ( cd "$ROOT" && python3 -m qbible completion bash ) > "$T/share/bash-completion/completions/qbible"
 
@@ -48,5 +59,6 @@ cp "$ROOT/build/translations/kjv-validation.txt" "$T/share/doc/qbible/kjv-valida
 cp "$ROOT/data/sources/eng-kjv_about.htm" "$T/share/doc/qbible/kjv-source-about.htm"
 
 find "$T" -type d -exec chmod 0755 {} +
-find "$SHARE" "$T/share/doc/qbible" "$T/share/man" "$T/share/bash-completion" -type f -exec chmod 0644 {} +
+find "$SHARE" "$T/share/doc/qbible" "$T/share/man" "$T/share/bash-completion" "$T/share/applications" \
+     "$T/share/icons" -type f -exec chmod 0644 {} +
 chmod 0755 "$T/bin/qbible"

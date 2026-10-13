@@ -6,12 +6,13 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 VERSION=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' "$ROOT/qbible/__init__.py")
 MAINTAINER=${QBIBLE_MAINTAINER:-"qbible maintainers <allsharer@gmail.com>"}
 STAGE="$ROOT/build/deb/qbible_${VERSION}_all"
-OUT="$ROOT/dist/qbible_${VERSION}_all.deb"
+DIST=${QBIBLE_DIST_DIR:-$ROOT/dist}   # override to build somewhere else
+OUT="$DIST/qbible_${VERSION}_all.deb"
 
 command -v dpkg-deb >/dev/null || { echo "error: dpkg-deb not found (install dpkg-dev)" >&2; exit 1; }
 
 rm -rf "$STAGE"
-mkdir -p "$STAGE/DEBIAN" "$ROOT/dist"
+mkdir -p "$STAGE/DEBIAN" "$DIST"
 "$ROOT/scripts/stage.sh" "$STAGE" /usr /usr/bin/python3
 
 DOC="$STAGE/usr/share/doc/qbible"

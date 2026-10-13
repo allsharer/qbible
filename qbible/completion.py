@@ -56,8 +56,8 @@ _qbible()
         search) COMPREPLY=($(compgen -W "--phrase --words --any -l --limit -p --page -c --context --sort --book --testament --count $reading" -- "$cur")) ;;
         bookmark|bookmarks) COMPREPLY=($(compgen -W "add list open label remove --label --json" -- "$cur")) ;;
         history) COMPREPLY=($(compgen -W "list clear --limit --json" -- "$cur")) ;;
-        config) COMPREPLY=($(compgen -W "list get set unset reading.translation reading.verse_numbers reading.supplied reading.pilcrows display.colour search.limit server.host server.port" -- "$cur")) ;;
-        serve) COMPREPLY=($(compgen -W "--host --port --open --allow-remote --no-user-data" -- "$cur")) ;;
+        config) COMPREPLY=($(compgen -W "list get set unset reading.translation reading.verse_numbers reading.supplied reading.pilcrows display.colour search.limit server.host server.port server.exit_when_closed" -- "$cur")) ;;
+        serve) COMPREPLY=($(compgen -W "--host --port --open --allow-remote --no-user-data --exit-when-closed --keep-running" -- "$cur")) ;;
         random|books) COMPREPLY=($(compgen -W "--testament --json" -- "$cur")) ;;
         import) COMPREPLY=($(compgen -f -W "--id --name --licence --format --abbreviation --language --copyright --attribution --source-name --source-url --retrieved --versification --force" -- "$cur")) ;;
         *) COMPREPLY=($(compgen -W "--json --help" -- "$cur")) ;;

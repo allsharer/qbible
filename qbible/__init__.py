@@ -11,5 +11,5 @@ The package is organised in layers:
 * ``cli``, ``interactive``, ``server`` — user interfaces.
 """
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 APP_NAME = "qbible"

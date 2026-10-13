@@ -70,7 +70,7 @@ computer, because both use the same per-user database.
 ### Option A: Debian package (system-wide, recommended on Ubuntu)
 
 ```sh
-sudo apt install ./qbible_1.1.0_all.deb
+sudo apt install ./qbible_1.2.0_all.deb
 ```
 
 This installs:
@@ -81,6 +81,8 @@ This installs:
 | `/usr/share/qbible/` | program files, browser assets and the KJV database (read-only) |
 | `/usr/share/man/man1/qbible.1.gz` | manual page (`man qbible`) |
 | `/usr/share/bash-completion/completions/qbible` | tab completion |
+| `/usr/share/applications/qbible.desktop` | **qbible** launcher in the app drawer (Activities / Show Apps) |
+| `/usr/share/icons/hicolor/*/apps/qbible.{png,svg}` | app icon, 16–512 px plus scalable |
 | `/usr/share/doc/qbible/` | README, licences, KJV validation report |
 
 The package creates no system services and changes no system settings. Each user's
@@ -94,7 +96,9 @@ From a source checkout (with the KJV database built, see below):
 make install-user           # or: scripts/install.sh [PREFIX]   (default ~/.local)
 ```
 
-Make sure `~/.local/bin` is on your `PATH`.
+Make sure `~/.local/bin` is on your `PATH`. This also adds the app launcher and icon under
+`~/.local/share/applications` and `~/.local/share/icons`. The launcher uses the full path to
+`qbible`, so it works even if `~/.local/bin` is not on the desktop's `PATH`.
 
 ### Option C: run from the source tree
 
@@ -130,7 +134,7 @@ qbible [GLOBAL OPTIONS] COMMAND [ARGUMENTS]
 | `bookmark remove ID` | Delete a bookmark | `qbible bookmark remove 2` |
 | `history [clear]` | Show or clear reading history | `qbible history --limit 50` |
 | `shell` | Interactive reading mode | `qbible shell` |
-| `serve [--open]` | Start the browser interface | `qbible serve --open` |
+| `serve [--open] [--keep-running]` | Start the browser interface (stops when its pages are closed) | `qbible serve --open` |
 | `translations` | List installed translations and licences | `qbible translations` |
 | `import FILE ...` | Import another legally obtained translation | see [below](#additional-bible-translations) |
 | `remove-translation ID` | Remove a translation you imported | `qbible remove-translation web` |
@@ -273,13 +277,38 @@ eval "$(qbible completion bash)"
 
 ## Using the browser interface
 
+**From the app drawer:** open Activities (or Show Apps), search for **qbible** and click it.
+qbible starts in the background and opens in your default browser. When you close the qbible
+tab or window, the background server stops by itself. Clicking the icon again while qbible is
+running just opens another qbible page. If the browser never connects (for example it failed
+to open), the background server gives up after a minute. You can pin qbible to the dock with
+right-click → *Pin to Dash*.
+
+**From a terminal:**
+
 ```sh
 qbible serve --open          # starts http://127.0.0.1:8737/ and opens your browser
 qbible serve --port 9000     # another port (0 = any free port)
+qbible serve --keep-running  # don't stop when the browser pages are closed
 ```
 
-Leave the command running while you read, and press **Ctrl+C** to stop it. The server listens
-only on this computer (127.0.0.1). It refuses other addresses unless you pass
+**The server stops by itself when you close qbible in your browser.** Once every qbible tab or
+window has been closed, it shuts down within a few seconds. You can also stop it at any time
+with **Ctrl+C**. Details:
+
+- It only starts watching once a page has connected, so `qbible serve` without `--open` waits
+  for you to open the address.
+- Reloading a page, navigating within qbible, or having several qbible tabs open does not stop
+  it. Neither does switching to other tabs: browsers slow down background tabs, so a hidden
+  qbible tab is allowed up to about 2½ minutes between check-ins. If you close your last
+  visible qbible tab while another one sits in the background, the server stops when that one
+  is closed too.
+- If the server stops while a page is still open (for example after Ctrl+C), the page shows a
+  notice. It reconnects by itself when you run `qbible serve` again on the same port.
+- To keep the server running regardless, use `--keep-running` or
+  `qbible config set server.exit_when_closed false`.
+
+The server listens only on this computer (127.0.0.1). It refuses other addresses unless you pass
 `--allow-remote` (see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)).
 
 ### Reading and navigating
@@ -396,6 +425,7 @@ permissions `0600`.
 | `search.limit` | `20` | results per page |
 | `server.host` | `127.0.0.1` | listening address for `serve` |
 | `server.port` | `8737` | port for `serve` |
+| `server.exit_when_closed` | `true` | stop `serve` once all its browser pages are closed |
 
 ```sh
 qbible config set reading.supplied brackets
@@ -451,7 +481,7 @@ download a browser. Tests use temporary data directories and never touch your bo
 ## Building the Debian package
 
 ```sh
-make deb              # -> dist/qbible_1.1.0_all.deb  (dpkg-deb, no root needed)
+make deb              # -> dist/qbible_1.2.0_all.deb  (dpkg-deb, no root needed)
 make test-deb         # lintian + run the extracted package (read, search, validate, server)
 make release          # data, all tests, .deb, package checks, source tarball and SHA256SUMS
 ```

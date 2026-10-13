@@ -33,7 +33,7 @@ translation or bookmark), 413 (body too large), 421 (unrecognised Host) or 503 (
 
 | Method & path | Parameters | Returns |
 |---|---|---|
-| `GET /api/v1/info` | — | `app`, `version`, `api_version`, `user_data` (bool), `default_translation` |
+| `GET /api/v1/info` | — | `app`, `version`, `api_version`, `user_data` (bool), `default_translation`, `watchdog` (`{"interval_ms": N}` when the server stops after its pages close, otherwise `null`) |
 | `GET /api/v1/translations` | — | `translations[]` (id, name, abbreviation, language, licence, copyright, attribution, source_url, versification, verse_count), `default` |
 | `GET /api/v1/translations/{t}/books` | — | `books[]`: id, order, name, slug, osis, testament, `chapters`, `verses[]` (count per chapter) |
 | `GET /api/v1/passage` | `ref` (text such as `John 3:16` or key such as `JHN.3.16`), `t` | passage (below). A whole-book reference returns chapter 1. |
@@ -74,6 +74,15 @@ Passage payload:
 ```
 
 Clients should render `segments` as text (marking `match` and `supplied`) and never as HTML.
+
+## Heartbeat (browser-presence watchdog)
+
+`POST /api/v1/heartbeat` with `{"client": "<page id>", "visible": true, "closing": false}`. The
+same CSRF requirements apply as for user data (below). `client` is a random id per page load
+(1–64 characters from `A-Z a-z 0-9 _ -`). Pages send it every `info.watchdog.interval_ms` while
+visible, on visibility changes, and with `"closing": true` (a `keepalive` request) when the
+page is closed or reloaded. Returns `{"watchdog": bool}`. Heartbeats are accepted but ignored when
+the watchdog is off. See `qbible/watchdog.py` for the lease rules.
 
 ## User data (local mode only)
 

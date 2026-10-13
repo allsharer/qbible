@@ -4,6 +4,7 @@
 import { api, ApiError } from "./api.js";
 import { applyPrefs, DEFAULTS, FONT_MAX, FONT_MIN, FONT_STEP, loadPrefs, savePrefs } from "./prefs.js";
 import { LocalStore, ServerStore } from "./store.js";
+import { startHeartbeat } from "./heartbeat.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -893,6 +894,13 @@ async function start() {
   bindEvents();
   try {
     state.info = await api.info();
+    if (state.info.watchdog) {
+      // Started first, so a reloaded page claims its lease before anything else loads.
+      startHeartbeat(state.info.watchdog.interval_ms, {
+        onLost: () => { $("connection-banner").hidden = false; },
+        onRestored: () => { $("connection-banner").hidden = true; },
+      });
+    }
     state.store = state.info.user_data ? new ServerStore() : new LocalStore();
     const tr = await api.translations();
     state.defaultTranslation = tr.default || state.info.default_translation;

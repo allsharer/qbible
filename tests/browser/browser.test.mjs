@@ -20,9 +20,10 @@ const CHROME = process.env.CHROME_PATH ||
   ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser"]
     .find((p) => existsSync(p));
 
-async function startServer(extraArgs = [], { withTestTranslation = false } = {}) {
+async function startServer(extraArgs = [], { withTestTranslation = false, env: extraEnv = {} } = {}) {
   const home = mkdtempSync(join(tmpdir(), "qbible-browser-"));
-  const env = { ...process.env, QBIBLE_DATA_HOME: join(home, "data"), QBIBLE_CONFIG_HOME: join(home, "config") };
+  const env = { ...process.env, QBIBLE_DATA_HOME: join(home, "data"), QBIBLE_CONFIG_HOME: join(home, "config"),
+    ...extraEnv };
   if (withTestTranslation) {
     const r = spawnSync("python3", ["-m", "qbible", "import", join(ROOT, "tests/browser/fixtures/test-translation.tsv"),
       "--id", "test", "--name", "Test Translation", "--abbreviation", "TST", "--licence", "Test fixture",
@@ -34,17 +35,19 @@ async function startServer(extraArgs = [], { withTestTranslation = false } = {})
     env,
     stdio: ["ignore", "pipe", "pipe"],
   });
+  let buf = "";
+  let exitCode = null;
+  const exited = new Promise((resolve) => proc.on("exit", (code) => { exitCode = code; resolve(code); }));
   const url = await new Promise((resolve, reject) => {
-    let buf = "";
     const timer = setTimeout(() => reject(new Error(`server did not start: ${buf}`)), 15000);
     proc.stderr.on("data", (d) => {
       buf += d;
       const m = /running at (http:\/\/[^\s]+)/.exec(buf);
       if (m) { clearTimeout(timer); resolve(m[1].replace(/\/$/, "")); }
     });
-    proc.on("exit", (code) => reject(new Error(`server exited ${code}: ${buf}`)));
+    exited.then((code) => reject(new Error(`server exited ${code}: ${buf}`)));
   });
-  return { url, proc, home };
+  return { url, proc, home, output: () => buf, exited, running: () => exitCode === null && proc.exitCode === null };
 }
 
 function stopServer(s) {
@@ -527,5 +530,79 @@ describe("translation picker (two translations installed)", { skip: !CHROME && "
     await waitRoute(page, n);
     assert.equal(new URL(page.url()).pathname, "/bible/test/john/3/2");
     assert.equal(await page.$eval("#translation-select", (s) => s.value), "test");
+  });
+});
+
+describe("server stops when its browser pages are closed", { skip: !CHROME && "Chrome/Chromium not found" }, () => {
+  // Short timings (visible 2 s, hidden 4 s, closing grace 1 s) keep the test quick.
+  const env = { QBIBLE_WATCHDOG_TIMEOUTS: "2,4,1" };
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const exitWithin = (s, ms) => Promise.race([s.exited, sleep(ms).then(() => "timeout")]);
+  let browser;
+  before(async () => {
+    browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ["--no-sandbox"] });
+  });
+  after(async () => { if (browser) await browser.close(); });
+
+  test("open pages, reloads and navigation keep it running; closing the last page stops it", async () => {
+    const server = await startServer([], { env });
+    try {
+      const page1 = await browser.newPage();
+      await goto(page1, server.url + "/bible/kjv/john/1");
+      const page2 = await browser.newPage();
+      await goto(page2, server.url + "/bible/kjv/psalms/23");
+      await sleep(3000); // longer than the visible timeout: pings keep it alive
+      assert.ok(server.running(), "running while pages are open");
+
+      await page1.reload({ waitUntil: "domcontentloaded" }); // reload = closing + new page
+      // page1 is a background tab now: requestAnimationFrame polling never fires there.
+      await page1.waitForFunction(() => document.body.dataset.ready === "true", { polling: 100 });
+      await page1.bringToFront(); // the user switches back to this tab
+      await page1.click("#next-top"); // in-app navigation
+      await page2.close();
+      await sleep(2500);
+      assert.ok(server.running(), "one page still open after a reload and another page closing");
+
+      await page1.close(); // last page
+      assert.equal(await exitWithin(server, 6000), 0, "server exits cleanly after the last page closes");
+      assert.match(server.output(), /All qbible browser pages were closed; the server has stopped\./);
+    } finally {
+      stopServer(server);
+    }
+  });
+
+  test("--keep-running ignores closed pages", async () => {
+    const server = await startServer(["--keep-running"], { env });
+    try {
+      const page = await browser.newPage();
+      await goto(page, server.url + "/bible/kjv/john/1");
+      await page.close();
+      assert.equal(await exitWithin(server, 4000), "timeout");
+      assert.ok(server.running());
+    } finally {
+      stopServer(server);
+    }
+  });
+
+  test("an open page shows a banner when the server stops, and recovers", async () => {
+    const server = await startServer([], { env });
+    let restarted = null;
+    try {
+      const page = await browser.newPage();
+      await goto(page, server.url + "/bible/kjv/john/1");
+      assert.equal(await page.$eval("#connection-banner", (e) => e.hidden), true);
+      server.proc.kill("SIGTERM"); // stopped some other way (e.g. Ctrl+C)
+      await server.exited;
+      await page.waitForFunction(() => !document.getElementById("connection-banner").hidden, { timeout: 5000 });
+      assert.match(await text(page, "#connection-banner"), /qbible server has stopped/);
+      // Start it again on the same port: the page reconnects and hides the banner.
+      const port = new URL(server.url).port;
+      restarted = await startServer(["--port", port], { env });
+      await page.waitForFunction(() => document.getElementById("connection-banner").hidden, { timeout: 5000 });
+      await page.close();
+    } finally {
+      stopServer(server);
+      stopServer(restarted);
+    }
   });
 });

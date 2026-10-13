@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=qbible
+GenericName=Bible Reader
+Comment=Read and search the King James Bible, offline and ad-free
+Keywords=Bible;KJV;Scripture;King James;Christian;Verse;Search;
+Icon=qbible
+Exec=@BINDIR@/qbible serve --open --exit-when-closed
+Terminal=false
+Categories=Education;Literature;
+StartupNotify=false

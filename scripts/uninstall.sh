@@ -15,7 +15,11 @@ if [ ! -f "$PREFIX/share/qbible/python/qbible/__init__.py" ]; then
     echo "No qbible installation found under $PREFIX" >&2
     exit 1
 fi
-rm -f "$PREFIX/bin/qbible" "$PREFIX/share/man/man1/qbible.1.gz" "$PREFIX/share/bash-completion/completions/qbible"
+rm -f "$PREFIX/bin/qbible" "$PREFIX/share/man/man1/qbible.1.gz" "$PREFIX/share/bash-completion/completions/qbible" \
+      "$PREFIX/share/applications/qbible.desktop" "$PREFIX"/share/icons/hicolor/*/apps/qbible.png \
+      "$PREFIX/share/icons/hicolor/scalable/apps/qbible.svg"
+command -v update-desktop-database >/dev/null && [ -d "$PREFIX/share/applications" ] \
+    && update-desktop-database -q "$PREFIX/share/applications" || true
 rm -rf "$PREFIX/share/qbible" "$PREFIX/share/doc/qbible"
 echo "Removed qbible from $PREFIX"
 if [ "$PURGE" = 1 ]; then
