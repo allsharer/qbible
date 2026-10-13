@@ -1,0 +1,90 @@
+.TH QBIBLE 1 "October 2026" "qbible 1.0.0" "User Commands"
+.SH NAME
+qbible \- a modern, ad-free Bible reader (King James Version)
+.SH SYNOPSIS
+.B qbible
+[\fIGLOBAL OPTIONS\fR] \fICOMMAND\fR [\fIARGUMENTS\fR]
+.SH DESCRIPTION
+.B qbible
+reads, searches and navigates the King James Version of the Bible from the
+terminal or, with \fBqbible serve\fR, in a web browser on the same computer.
+It works offline, contains no adverts and does not track its users.
+.SH COMMANDS
+.TP
+.BI "read " REFERENCE
+Show a verse, range, chapter or book, e.g. \fBqbible read John 3:16\fR,
+\fBqbible read Psalm 23\fR, \fBqbible read 1 Cor 13:4\-7\fR.
+.TP
+.BI "chapter " "BOOK CHAPTER"
+Show a whole chapter.
+.TP
+.BR next ", " previous " [\fB\-\-from\fR \fIREFERENCE\fR]"
+Read the chapter after or before the last passage you read (the saved reading position).
+.TP
+.BR random " [\fB\-\-testament\fR OT|NT]"
+Show a random verse.
+.TP
+.B books
+List the books of the Bible with their chapter counts and abbreviations.
+.TP
+.BI "search " WORDS
+Search. A quoted argument is an exact phrase (\fBqbible search "fear not"\fR);
+separate words must all appear. Options: \fB\-\-limit\fR N, \fB\-\-page\fR N,
+\fB\-\-context\fR [N], \fB\-\-phrase\fR, \fB\-\-words\fR, \fB\-\-any\fR,
+\fB\-\-sort\fR canonical|relevance, \fB\-\-book\fR BOOK, \fB\-\-testament\fR OT|NT, \fB\-\-count\fR.
+.TP
+.BI "ref " REFERENCE
+Check and normalise a reference.
+.TP
+.BR bookmark " add|list|open|label|remove ..."
+Manage bookmarks, e.g. \fBqbible bookmark add John 3:16 \-\-label "God's love"\fR.
+.TP
+.BR history " [list|clear]"
+Show or clear the reading history.
+.TP
+.B shell
+Interactive reading mode (type \fBhelp\fR inside it).
+.TP
+.BR serve " [\fB\-\-port\fR N] [\fB\-\-open\fR]"
+Start the browser interface on http://127.0.0.1:8737/ (local only).
+.TP
+.BR translations ", " import ", " remove\-translation ", " validate
+Manage and check translations.
+.TP
+.BR config " [list|get|set|unset]"
+Show or change settings.
+.TP
+.BR paths ", " completion
+Show file locations; print the bash completion script.
+.SH GLOBAL OPTIONS
+.TP
+.BR \-t ", " \-\-translation " \fIID\fR"
+Translation to use (default \fBkjv\fR).
+.TP
+.BR \-\-colour " auto|always|never, " \-\-plain
+Control colour. Colour is only used on terminals; \fBNO_COLOR\fR is respected.
+.TP
+.BR \-h ", " \-\-help ", " \-V ", " \-\-version
+.SH EXIT STATUS
+0 success; 1 nothing found; 2 usage error; 3 invalid reference or unknown bookmark;
+4 data or configuration problem; 130 interrupted.
+.SH FILES
+.TP
+.I /usr/share/qbible/translations/kjv.sqlite
+The bundled King James Version (read-only).
+.TP
+.I ~/.local/share/qbible/user.sqlite
+Your bookmarks and reading history.
+.TP
+.I ~/.local/share/qbible/translations/
+Translations you have imported.
+.TP
+.I ~/.config/qbible/config.ini
+Settings (\fBqbible config\fR).
+.SH ENVIRONMENT
+\fBQBIBLE_DATA_HOME\fR, \fBQBIBLE_CONFIG_HOME\fR, \fBQBIBLE_TRANSLATIONS_PATH\fR,
+\fBQBIBLE_SHARE_DIR\fR, \fBQBIBLE_WEB_DIR\fR override file locations;
+\fBXDG_DATA_HOME\fR and \fBXDG_CONFIG_HOME\fR are honoured; \fBNO_COLOR\fR disables colour.
+.SH COPYRIGHT
+qbible is free software under the MIT licence. The King James Version text is
+in the public domain outside the United Kingdom; see /usr/share/doc/qbible/copyright.

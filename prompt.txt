@@ -1,0 +1,837 @@
+# MASTER DEVELOPMENT PROMPT: qbible — A Modern, Ad-Free Bible Application
+
+## 1. Your Role
+
+Act as a master software architect, senior full-stack developer, database designer, security engineer, UI/UX designer, and automated testing specialist.
+
+Design, implement, test, document, and package a complete application named **qbible**.
+
+Do not merely produce a demonstration, mock-up, prototype, collection of code snippets, or development plan. Build a working application with real Bible text, functioning search, accurate scripture navigation, persistent user preferences, automated tests, and installation instructions.
+
+Use sound software engineering principles, maintainable architecture, current stable technologies, and established security practices.
+
+You have the authority to select the implementation technologies, database structure, frameworks, and project organisation, provided that you meet every requirement in this prompt. Document significant technical decisions.
+
+Work autonomously where reasonable. Inspect the existing environment and repository before making changes. Do not overwrite unrelated files or destroy existing user data.
+
+If a requirement cannot be completed because of an external dependency, licensing restriction, or unavailable resource, explain the limitation and implement the best lawful alternative.
+
+## 2. Project Vision
+
+Create **qbible**, a modern, simple, fast, readable, and completely advertisement-free Bible application.
+
+The initial release must support two ways of using the application:
+
+1. **CLI:** A fully functional command-line Bible reader for Linux, particularly Ubuntu and Ubuntu-based distributions.
+2. **Browser:** A modern, responsive web application that works locally on a desktop or laptop without requiring an internet connection for its core Bible-reading features.
+
+The application must be designed from the beginning to support these future possibilities:
+
+- A native Android application.
+- Additional Bible translations and versions.
+- Public deployment on a website.
+- Secure multi-user access if public hosting is introduced.
+- Optional user accounts and synchronisation, if justified later.
+- Additional languages, dictionaries, commentaries, and study resources in future releases.
+
+The first release must use the **King James Version (KJV) exclusively**, but its architecture must not assume that only one Bible translation will ever exist.
+
+The application must contain no advertisements, advertising SDKs, tracking pixels, analytics that compromise privacy, or unnecessary external service dependencies.
+
+## 3. Development Principles
+
+Follow these principles throughout the project:
+
+- Correctness of biblical text and scripture references takes priority over visual effects.
+- Use a clean separation between the Bible data, application logic, CLI, browser interface, and future mobile clients.
+- Prefer open-source technologies and portable formats.
+- Avoid unnecessary complexity and excessive dependencies.
+- Make the application work offline after installation and initial setup.
+- Do not require a subscription, account, cloud service, or API key for core functionality.
+- Do not introduce artificial restrictions on reading, searching, or navigating the Bible.
+- Keep the code modular, documented, testable, and maintainable.
+- Use British English spelling in documentation and interface text where appropriate.
+- Ensure that the CLI is a genuine, fully supported interface, not merely a launcher for the browser.
+- Do not mark incomplete features as finished.
+- Do not fabricate test results or claim that unexecuted tests have passed.
+
+## 4. Architecture and Technology Selection
+
+Before implementation, inspect the available environment and choose a suitable technology stack.
+
+The architecture must separate these components:
+
+### A. Bible engine
+
+A reusable core responsible for:
+
+- Bible book, chapter, and verse identification.
+- Bible text retrieval.
+- Translation identification.
+- Scripture reference parsing.
+- Search and search result ranking.
+- Verse-range retrieval.
+- Text formatting.
+- Reading navigation.
+- Validation of scripture references.
+
+The core must be reusable by the CLI, web application, and future Android application.
+
+### B. Bible data layer
+
+A well-defined repository or service interface for accessing Bible translations.
+
+The first implementation must provide KJV text through a locally stored, properly attributed and legally distributable data source.
+
+Store the Bible text in a suitable structured format or database. SQLite is a strong default for the initial implementation because it is portable, compact, reliable, and suitable for both reading and searching.
+
+Consider SQLite full-text search, such as FTS5, where supported by the chosen implementation.
+
+Avoid scattering Bible text directly throughout source code, interface components, or application logic.
+
+The data layer must support importing additional translations without redesigning the entire application.
+
+### C. Application services
+
+Implement reusable services for:
+
+- Reading individual verses and ranges.
+- Resolving scripture references.
+- Searching the Bible.
+- Returning surrounding verses and context.
+- Managing bookmarks and reading history.
+- Managing user preferences.
+- Importing and registering additional Bible versions in the future.
+
+### D. User interfaces
+
+Build separate interfaces that share the same core functionality:
+
+- CLI.
+- Browser.
+
+Do not duplicate essential scripture parsing or search logic between the interfaces.
+
+### E. Future mobile interface
+
+Define a documented integration boundary for a future Android client. If an API is introduced, version it and keep its contract independent of the browser interface.
+
+Do not build an unnecessary remote service into the first release merely to accommodate a future Android application.
+
+## 5. Bible Translation and Copyright
+
+Begin with the King James Version only.
+
+Do not assume that every text labelled KJV, every modern transcription, or every downloadable Bible database has identical licensing terms.
+
+Before selecting the source:
+
+1. Identify the exact source of the KJV text.
+2. Verify that its licence permits the intended redistribution and packaging.
+3. Check the terms for any accompanying database, metadata, or software.
+4. Preserve required copyright notices, attribution, and licence files.
+5. Record the source URL, licence, retrieval date, and import procedure in the project documentation.
+
+Prefer a reputable, verifiable public-domain or otherwise appropriately licensed source.
+
+Do not scrape a commercial Bible website or bundle a copyrighted translation without permission.
+
+If the selected source cannot lawfully be redistributed, implement a documented import mechanism for a legally obtained KJV text and explain how the user can populate the database.
+
+The final package must not silently substitute a different translation or present incomplete sample text as the complete Bible.
+
+## 6. Scripture Data Model
+
+Represent the Bible in a way that supports precise references and future translation additions.
+
+The model should accommodate:
+
+- Translation/version identifier.
+- Book identifier and canonical name.
+- Book aliases.
+- Testament.
+- Canonical book order.
+- Chapter number.
+- Verse number.
+- Verse text.
+- Optional source metadata.
+
+Use stable internal book identifiers rather than relying exclusively on display names.
+
+The initial KJV dataset must contain all 66 canonical Protestant Bible books, from Genesis through Revelation, with all their chapters and verses.
+
+Validate the imported dataset against a trusted reference, including:
+
+- All 66 books are present.
+- The expected chapter counts are correct.
+- Verse numbering is valid and sequential where appropriate.
+- No chapters or verses are silently missing.
+- The beginning of Genesis and the end of Revelation are correct.
+- The complete text is available offline.
+- Special punctuation, apostrophes, quotation marks, and Unicode characters are preserved.
+
+Account for legitimate differences in versification and source formatting. Do not blindly impose a universal verse-count table if it conflicts with the selected source.
+
+Provide a reproducible import or database-building command and a validation report.
+
+## 7. CLI Requirements
+
+Provide a real command-line program named `qbible`.
+
+It should work from a normal terminal without opening a browser.
+
+Use a consistent, discoverable command structure. A possible design is:
+
+`qbible [OPTIONS] COMMAND [ARGUMENTS]`
+
+Implement the following functionality.
+
+### A. Read scripture
+
+Examples of the intended user experience:
+
+- `qbible read John 3:16`
+- `qbible read John 3:16-21`
+- `qbible read Psalm 23`
+- `qbible read Genesis 1:1-10`
+- `qbible read Romans 8`
+- `qbible read 1 John 4:8`
+- `qbible read Rev 21:1-4`
+
+Support reasonable book-name aliases and common abbreviations.
+
+Allow a translation to be specified when additional translations become available, while defaulting to KJV in the first release.
+
+Display references clearly. Where practical, provide optional verse numbering and terminal-friendly formatting.
+
+### B. Navigate
+
+Support intuitive ways to move to the previous or next chapter, open a book, or navigate to a specified verse.
+
+Consider commands such as:
+
+- `qbible books`
+- `qbible chapter John 3`
+- `qbible next`
+- `qbible previous`
+- `qbible random`
+
+Commands that require navigation state must handle that state explicitly, for example through an interactive reading session or an explicitly stored last-reading position. Do not pretend that a stateless command remembers a previous chapter when it does not.
+
+Provide a useful interactive terminal reading mode if practical, with commands for navigation, search, bookmarks, and quitting.
+
+### C. Search
+
+Support both individual words and exact phrases.
+
+Examples:
+
+- `qbible search faith`
+- `qbible search "faith without works"`
+- `qbible search "Jesus wept"`
+- `qbible search love --limit 50`
+- `qbible search "fear not" --context`
+
+Provide:
+
+- Case-insensitive searching.
+- Phrase searching.
+- Clear verse references.
+- Configurable result limits.
+- Result pagination or a practical means of displaying more results.
+- A total match count when available.
+- Sensible handling of punctuation and apostrophes.
+- Search performance suitable for the complete Bible.
+
+Do not silently treat an exact phrase search as a collection of unrelated word searches.
+
+If advanced operators or Boolean search are supported, document their syntax.
+
+Search must be safe from SQL injection and must not interpret arbitrary input as executable SQL.
+
+### D. Scripture reference resolution
+
+Make it easy to enter a scripture reference and retrieve the intended passage.
+
+Support:
+
+- Full book names.
+- Common abbreviations.
+- References with or without spaces.
+- Chapter-only references.
+- Single verses.
+- Verse ranges.
+- Common punctuation variations.
+- References containing multi-part book names, such as Song of Solomon.
+- Numbered books, such as 1 Samuel, 2 Kings, and 1 John.
+
+Clearly report invalid references, nonexistent chapters, and nonexistent verses.
+
+Never silently redirect an invalid reference to an unrelated passage.
+
+### E. CLI usability
+
+Provide:
+
+- `qbible --help`
+- `qbible --version`
+- Helpful error messages.
+- Appropriate exit codes.
+- Pipe-friendly output.
+- A plain-text or no-colour option.
+- Optional colour and terminal formatting that respects terminal capabilities.
+- Shell completion where practical.
+
+Ensure that piping scripture text into another program does not include unwanted terminal decorations.
+
+## 8. Browser Application Requirements
+
+Build a polished, modern, responsive Bible-reading interface.
+
+The visual style should be calm, uncluttered, readable, and appropriate for prolonged Bible study.
+
+Avoid excessive animations, complicated menus, unnecessary panels, and intrusive pop-ups.
+
+### A. Main layout
+
+Provide an intuitive reading interface containing:
+
+- A clear application name and navigation area.
+- A book selector.
+- A chapter selector.
+- A visible scripture reference.
+- A readable passage area.
+- A search field.
+- Previous and next chapter controls.
+- Settings for reading appearance.
+- Convenient access to bookmarks and recent reading history.
+
+On desktop, use available screen space intelligently.
+
+On mobile-sized browser screens, adapt the layout to a narrow viewport and touch interaction.
+
+Do not require horizontal scrolling to read normal scripture text.
+
+### B. Book and chapter navigation
+
+Provide an easy way to select:
+
+1. A Bible book.
+2. A chapter.
+3. A verse or verse range.
+
+Allow users to move between chapters using clearly visible controls.
+
+Support direct reference entry, such as `John 3:16`.
+
+If a valid reference is entered into the browser's search/navigation field, offer a direct way to open that passage rather than treating it only as a keyword search.
+
+Make the current book, chapter, and translation obvious.
+
+Support browser history and meaningful URLs so users can refresh, use Back and Forward, and bookmark a passage.
+
+Design the URL structure to accommodate translation identifiers, for example a conceptual path such as `/bible/kjv/john/3/16`.
+
+The exact route structure is your architectural decision, but it must be stable and documented.
+
+### C. Reading experience
+
+The passage itself must be the primary focus.
+
+Implement:
+
+- Comfortable line spacing.
+- Clearly distinguishable verse numbers.
+- Good contrast in both light and dark themes.
+- A sensible maximum reading width on wide screens.
+- Readable typography.
+- Minimal visual clutter.
+- A print-friendly stylesheet.
+- Proper text selection and copying.
+
+Provide a way to copy a verse or passage with its scripture reference.
+
+If the user selects a verse, make its reference easy to identify and copy.
+
+Avoid requiring a sign-in before reading or searching.
+
+### D. Font and appearance controls
+
+The user must be able to increase and decrease the font size.
+
+Implement:
+
+- Increase font size.
+- Decrease font size.
+- Reset to the default size.
+- A practical range of font sizes.
+- A choice of appropriate reading fonts, including a system sans-serif and a readable serif.
+- Line-spacing adjustment if practical.
+- Light theme.
+- Dark theme.
+- A system theme option if supported.
+
+Persist appearance preferences locally so they survive browser restarts.
+
+Make sure changing the font size does not break navigation, overflow the layout, or obscure verse numbers.
+
+Provide accessible controls with visible labels and keyboard support.
+
+### E. Search interface
+
+Implement a clear search experience that supports words and phrases.
+
+Show results in a compact, readable list with:
+
+- Book, chapter, and verse.
+- The matching scripture text.
+- Search term highlighting where appropriate.
+- A direct link to open the passage.
+- Pagination or a load-more mechanism.
+- Clear feedback when no results are found.
+
+Allow users to distinguish between a search query and a scripture reference when appropriate.
+
+Keep search usable on mobile devices and with a keyboard.
+
+Do not issue a network request for every keystroke unless a deliberate, efficient interaction model requires it.
+
+The first release should search the local Bible database and must not depend on an external search service.
+
+## 9. Scripture Navigation and Cross-References
+
+An important feature is the ability to navigate easily to a referenced scripture.
+
+Implement a reference parser that recognises references in common forms, including:
+
+- `John 3:16`
+- `John 3:16-21`
+- `Romans 8:28`
+- `1 Corinthians 13:4-7`
+- `Psalm 23`
+- `Revelation 21:1-4`
+
+Where a passage or search result contains a clearly recognisable scripture reference, provide a clickable link or equivalent navigation action.
+
+For example, if a user searches for a phrase mentioning Romans 8:28, they should be able to open that passage directly.
+
+Handle punctuation and common abbreviations sensibly.
+
+Avoid converting ordinary numbers or text into false scripture links. Only make a link when the reference can be resolved confidently.
+
+Distinguish the ability to parse references from a curated cross-reference database. Do not fabricate theological cross-references or imply that a curated cross-reference system exists unless one has actually been implemented.
+
+For the initial release, robust reference parsing and direct navigation are mandatory. A curated cross-reference database is optional.
+
+## 10. Bookmarks and Reading History
+
+Implement practical local reading aids.
+
+### Bookmarks
+
+Allow users to:
+
+- Bookmark a verse or passage.
+- Give a bookmark an optional descriptive label.
+- View saved bookmarks.
+- Open a bookmark.
+- Remove a bookmark.
+
+Prevent accidental duplication where appropriate.
+
+### Reading history
+
+Keep a modest history of recently opened passages.
+
+Allow users to reopen a previous passage and clear the history.
+
+Do not store sensitive browsing information or send reading history to an external service.
+
+Use local persistence in the first release.
+
+Design the storage interface so that synchronisation can be introduced later without tying the core application to a particular cloud provider.
+
+## 11. Offline Operation
+
+The application must work without an internet connection after installation.
+
+The core Bible text, navigation, and search must remain available offline.
+
+For the browser version, bundle required assets locally. Do not load essential JavaScript, CSS, fonts, or Bible text from third-party CDNs.
+
+If you implement Progressive Web App support, ensure that:
+
+- The application can be installed where the browser supports it.
+- The Bible text remains available offline.
+- Cached assets are versioned and updated safely.
+- The application does not falsely report that remote data has been synchronised.
+- The offline experience has been tested.
+
+A service worker is optional for the first release unless it materially improves the offline experience.
+
+## 12. Database and Data Management
+
+Use a portable, maintainable storage design.
+
+SQLite is preferred for the initial Bible text database, but document any alternative and its benefits.
+
+Requirements:
+
+- Efficient chapter retrieval.
+- Efficient verse retrieval.
+- Fast word and phrase searching.
+- Database integrity checks.
+- Safe database initialisation.
+- Reproducible Bible data imports.
+- Clear separation between immutable Bible text and user-specific information.
+- No requirement for a database server to read the Bible locally.
+
+Do not modify the original KJV text when updating bookmarks, reading history, or appearance settings.
+
+If user data and Bible text share a database, use separate tables and clear ownership boundaries.
+
+Make database migrations explicit and testable.
+
+## 13. Future Android Support
+
+Do not build a throwaway architecture that must be replaced to create an Android app.
+
+The following must be possible without rewriting the Bible engine:
+
+- Reuse the same canonical Bible data.
+- Reuse the reference parsing rules.
+- Reuse or reproduce the same search behaviour.
+- Use the same translation metadata.
+- Reuse the same scripture navigation concepts.
+- Maintain equivalent bookmark and reading-history behaviour.
+
+Prefer an architecture that permits a future Android client to access a documented application service or reuse an appropriately packaged shared core.
+
+Evaluate the trade-offs between a shared TypeScript core, a Python-based core with an API, and a portable data-driven implementation. Choose a sensible solution rather than introducing multiple programming languages unnecessarily.
+
+If using Python for the CLI and a separate browser stack, make the service contract explicit and ensure the Android application will not need to depend on a running desktop process.
+
+If using a local HTTP service for the browser, bind it to loopback by default and do not expose it to the LAN or public internet unintentionally.
+
+Do not claim that the first release is an Android application. Document the work that remains necessary to produce and test one.
+
+## 14. Future Public Hosting and Security
+
+The initial application is local-first. However, its architecture must allow a future publicly hosted browser version.
+
+Follow these principles:
+
+- Never execute user-supplied search terms as code.
+- Use parameterised SQL queries.
+- Validate and normalise scripture references.
+- Apply appropriate output encoding.
+- Avoid unsafe HTML insertion.
+- Use safe dependency versions.
+- Keep secrets out of source code and logs.
+- Avoid unnecessary network listeners.
+- Do not bind a local-only service to all interfaces by default.
+- Provide a documented production configuration if a server component exists.
+- Separate local development settings from production settings.
+- Do not add user accounts or password storage without a genuine requirement.
+- Do not implement insecure authentication merely to support hypothetical future features.
+
+If the browser interface is served as static files, prefer that deployment model where it meets the requirements.
+
+If a backend is required, document its trust boundaries, deployment requirements, and security controls.
+
+Provide guidance for HTTPS, secure headers, backup procedures, software updates, and access logging when preparing a public deployment.
+
+Do not include analytics or tracking by default.
+
+## 15. Accessibility and Usability
+
+Follow sensible accessibility practices, aiming for WCAG 2.2 AA for the browser interface where practical.
+
+Include:
+
+- Semantic HTML.
+- Keyboard-accessible controls.
+- Visible keyboard focus.
+- Adequate colour contrast.
+- Accessible form labels.
+- Screen-reader-friendly navigation.
+- Meaningful page titles.
+- Reduced-motion support where animations are used.
+- Usable controls at increased text sizes.
+
+Ensure that dark mode is readable and that the application does not rely on colour alone to communicate important information.
+
+The CLI should also remain usable with screen readers and terminal configurations that do not support colour.
+
+## 16. Testing Requirements
+
+Write and execute automated tests.
+
+### Bible data tests
+
+- Confirm that all 66 expected books exist.
+- Validate the chapter and verse structure.
+- Check representative verses against the chosen source.
+- Check the first and last passages.
+- Verify database integrity.
+- Verify translation metadata and attribution.
+
+### Reference parser tests
+
+Test:
+
+- Full book names.
+- Abbreviations.
+- Numbered books.
+- Single verses.
+- Verse ranges.
+- Chapter-only references.
+- Psalm references.
+- Invalid book names.
+- Invalid chapter numbers.
+- Invalid verse numbers.
+- References containing unusual whitespace or punctuation.
+
+### Search tests
+
+Test:
+
+- Single words.
+- Multi-word phrases.
+- Case differences.
+- Apostrophes and punctuation.
+- Empty queries.
+- No matches.
+- Result limits.
+- Pagination.
+- SQL injection attempts.
+- Correct verse references in results.
+
+### CLI tests
+
+Test:
+
+- Help and version commands.
+- Reading a verse.
+- Reading a range.
+- Reading a chapter.
+- Searching for a word.
+- Searching for a phrase.
+- Invalid references.
+- Pipe-friendly output.
+- Exit codes.
+
+### Browser tests
+
+Test:
+
+- Navigation between books and chapters.
+- Direct passage URLs.
+- Browser Back and Forward.
+- Search and result navigation.
+- Font size controls.
+- Theme switching.
+- Preference persistence.
+- Bookmarks.
+- Reading history.
+- Keyboard navigation.
+- Responsive layout.
+
+### Security and regression tests
+
+Test database input handling, output encoding, path handling, and any local service exposure.
+
+Ensure that adding a translation does not break KJV reading.
+
+Run the complete automated test suite before declaring the application finished. Report tests that cannot be run and why.
+
+## 17. Packaging and Installation
+
+Provide an installation experience suitable for Ubuntu and Ubuntu-based distributions.
+
+At a minimum, deliver:
+
+1. The complete source code.
+2. A working CLI executable named `qbible`.
+3. The browser application.
+4. The KJV database or reproducible lawful import procedure.
+5. Automated tests.
+6. A README with installation and usage instructions.
+7. A licence and third-party attribution documentation.
+8. A development guide.
+9. A documented database update or migration procedure.
+10. A release/build script.
+
+Where practical, produce a Debian `.deb` package that installs the CLI, browser assets, and required data in suitable system locations.
+
+Follow Debian filesystem conventions:
+
+- Executables in an appropriate `bin` directory.
+- Architecture-independent assets in an appropriate shared-data directory.
+- Configuration and user data in suitable locations.
+- No unnecessary root-owned user data.
+- No hard-coded dependency on the developer's home directory.
+
+The application must not require users to run it as root.
+
+The installation must not overwrite personal files or silently change system-wide settings.
+
+If a `.deb` cannot be produced in the available environment, provide a working packaging configuration and explain the limitation. Do not claim to have generated a package unless it actually exists.
+
+Consider a portable installation option as well, provided it does not compromise maintainability.
+
+## 18. Configuration and File Locations
+
+Choose sensible, platform-appropriate locations for:
+
+- Immutable Bible data.
+- User preferences.
+- Bookmarks.
+- Reading history.
+- Logs, if any are necessary.
+- Imported translations.
+- Configuration.
+
+On Linux, follow XDG Base Directory conventions where appropriate.
+
+Provide a documented configuration mechanism for overriding default paths during development or testing.
+
+Ensure that different users on the same computer can maintain separate bookmarks and preferences without changing the installed Bible text.
+
+Do not store personal data inside the application's installation directory.
+
+## 19. User Documentation
+
+Write a complete README that explains:
+
+- What qbible is.
+- Its features.
+- The supported interfaces.
+- Installation requirements.
+- Installation instructions.
+- How to run the CLI.
+- How to launch the browser interface.
+- Examples of reading scripture.
+- Examples of searching words and phrases.
+- How to navigate to a referenced passage.
+- How to change fonts and themes.
+- How to use bookmarks and reading history.
+- How offline operation works.
+- How to import additional Bible versions in future.
+- How to run tests.
+- How to build the Debian package.
+- How to uninstall the application.
+- How to report a problem.
+
+Include a CLI quick-reference table.
+
+Document all implemented commands and options accurately. Do not document features that have not been implemented as if they already work.
+
+Provide separate developer documentation covering the architecture, data model, search implementation, reference parser, build process, and future Android integration.
+
+## 20. Development Workflow
+
+Proceed through the following stages.
+
+### Stage 1: Inspect and plan
+
+- Inspect the current directory, available tools, and existing files.
+- Identify any existing project or code that must be preserved.
+- Select the architecture and technology stack.
+- Verify the KJV source and licensing.
+- Write a concise implementation plan.
+- Identify risks and dependencies.
+
+Do not stop after presenting the plan. Continue into implementation.
+
+### Stage 2: Build the Bible data layer
+
+- Obtain or prepare the lawful KJV source.
+- Implement the data import process.
+- Create the database schema.
+- Add reference validation.
+- Implement passage retrieval.
+- Implement word and phrase searching.
+- Validate the resulting database.
+
+### Stage 3: Build the CLI
+
+- Implement the `qbible` command.
+- Add reading, navigation, searching, and reference parsing.
+- Add useful help text and error handling.
+- Add tests and examples.
+
+### Stage 4: Build the browser interface
+
+- Implement the modern responsive reader.
+- Add navigation and direct passage URLs.
+- Add search and result navigation.
+- Add typography controls and themes.
+- Add bookmarks and reading history.
+- Verify offline operation.
+
+### Stage 5: Integrate and test
+
+- Ensure the CLI and browser use consistent Bible data and reference rules.
+- Run automated tests.
+- Fix errors and regressions.
+- Verify that the complete KJV is present.
+- Check security, accessibility, and performance.
+- Test installation and removal.
+
+### Stage 6: Package and document
+
+- Build the distributable application.
+- Produce a `.deb` if the environment permits.
+- Verify the package contents.
+- Test installation and execution.
+- Complete the README and developer documentation.
+- Provide a concise release report.
+
+If an important dependency is unavailable, implement the remaining independent parts and clearly identify the blocker. Do not abandon the project simply because one optional component cannot be obtained.
+
+## 21. Definition of Done
+
+The first release is complete only when all mandatory conditions are met:
+
+- [ ] The application is named qbible.
+- [ ] The complete KJV is available from a verified, appropriately licensed source.
+- [ ] All 66 canonical Protestant Bible books are included.
+- [ ] The CLI can read individual verses, verse ranges, and chapters.
+- [ ] The CLI can search words and exact phrases.
+- [ ] The CLI can resolve common scripture references.
+- [ ] The browser application provides the same essential reading and search capabilities.
+- [ ] Browser navigation supports direct scripture URLs.
+- [ ] The user can change the font family and font size.
+- [ ] Light and dark themes work.
+- [ ] Bookmarks and reading history persist locally.
+- [ ] The core reading and searching functionality works offline.
+- [ ] The application contains no adverts or advertising SDKs.
+- [ ] The architecture supports additional Bible translations.
+- [ ] The architecture is documented for future Android development.
+- [ ] Automated tests are present and have been run.
+- [ ] Installation and usage instructions are complete.
+- [ ] The Debian package is built and tested if the environment permits.
+- [ ] No critical known errors remain unaddressed.
+- [ ] All unimplemented or partially implemented features are disclosed.
+
+## 22. Final Report
+
+When implementation is complete, provide a concise but informative report containing:
+
+1. The architecture and technologies selected, with reasons.
+2. The directory structure and purpose of its major components.
+3. The source and licensing status of the KJV text.
+4. The commands needed to run the CLI.
+5. The commands or procedure needed to start the browser interface.
+6. Examples of reading and searching.
+7. Instructions for changing fonts and themes.
+8. Test results, including any failures.
+9. The exact location of the generated Debian package, if produced.
+10. Any known limitations or outstanding tasks.
+11. The recommended next steps for an Android version.
+12. A practical deployment outline for a future public website.
+
+Be truthful about the state of the project. Distinguish between implemented, tested, partially implemented, and planned features.
+
+**Begin by inspecting the development environment, selecting the architecture, and verifying the lawful KJV data source. Then implement the application through to a tested, documented release. Do not stop at a proposal or wait for approval after every stage unless you encounter a genuinely blocking decision that cannot be resolved safely or reasonably on your own.**

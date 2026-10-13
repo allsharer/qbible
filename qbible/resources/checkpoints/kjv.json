@@ -1,0 +1,30 @@
+{
+ "schema": 1,
+ "translation": "kjv",
+ "description": "Representative KJV (1769 standard text) verses, stored exactly as in the eBible.org/CrossWire source ([ ] = supplied words, ¶ = paragraph). Used by validation and tests to detect corruption, truncation, encoding damage and mis-numbering.",
+ "verses": {
+  "GEN 1:1": "In the beginning God created the heaven and the earth.",
+  "GEN 3:20": "And Adam called his wife’s name Eve; because she was the mother of all living.",
+  "EXO 20:3": "Thou shalt have no other gods before me.",
+  "EXO 32:32": "Yet now, if thou wilt forgive their sin—; and if not, blot me, I pray thee, out of thy book which thou hast written.",
+  "EST 8:9": "Then were the king’s scribes called at that time in the third month, that [is], the month Sivan, on the three and twentieth [day] thereof; and it was written according to all that Mordecai commanded unto the Jews, and to the lieutenants, and the deputies and rulers of the provinces which [are] from India unto Ethiopia, an hundred twenty and seven provinces, unto every province according to the writing thereof, and unto every people after their language, and to the Jews according to their writing, and according to their language.",
+  "PSA 23:1": "A Psalm of David. The LORD [is] my shepherd; I shall not want.",
+  "PSA 117:2": "For his merciful kindness is great toward us: and the truth of the LORD [endureth] for ever. Praise ye the LORD.",
+  "PSA 119:176": "I have gone astray like a lost sheep; seek thy servant; for I do not forget thy commandments.",
+  "ISA 53:5": "But he [was] wounded for our transgressions, [he was] bruised for our iniquities: the chastisement of our peace [was] upon him; and with his stripes we are healed.",
+  "MAL 4:6": "And he shall turn the heart of the fathers to the children, and the heart of the children to their fathers, lest I come and smite the earth with a curse.",
+  "MAT 1:1": "The book of the generation of Jesus Christ, the son of David, the son of Abraham.",
+  "MAT 22:21": "They say unto him, Cæsar’s. Then saith he unto them, Render therefore unto Cæsar the things which are Cæsar’s; and unto God the things that are God’s.",
+  "JHN 3:16": "¶ For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.",
+  "JHN 11:35": "Jesus wept.",
+  "ACT 8:37": "And Philip said, If thou believest with all thine heart, thou mayest. And he answered and said, I believe that Jesus Christ is the Son of God.",
+  "ROM 8:28": "And we know that all things work together for good to them that love God, to them who are the called according to [his] purpose.",
+  "1CO 13:4": "Charity suffereth long, [and] is kind; charity envieth not; charity vaunteth not itself, is not puffed up,",
+  "1JN 4:8": "He that loveth not knoweth not God; for God is love.",
+  "1JN 5:7": "For there are three that bear record in heaven, the Father, the Word, and the Holy Ghost: and these three are one.",
+  "JUD 1:25": "To the only wise God our Saviour, [be] glory and majesty, dominion and power, both now and ever. Amen.",
+  "REV 22:21": "The grace of our Lord Jesus Christ [be] with you all. Amen."
+ },
+ "first": "GEN 1:1",
+ "last": "REV 22:21"
+}

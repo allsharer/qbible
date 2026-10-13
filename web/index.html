@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="qbible — a calm, ad-free Bible reader (King James Version).">
+  <title>qbible</title>
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <script src="/assets/js/boot.js"></script>
+  <script type="module" src="/assets/js/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to passage</a>
+
+  <header class="topbar">
+    <a class="brand" href="/" data-nav aria-label="qbible home">q<span>bible</span></a>
+    <span class="translation-badge" id="translation-badge" title="Translation">KJV</span>
+
+    <form id="go-form" class="go-form" role="search" autocomplete="off">
+      <label for="go-input" class="visually-hidden">Scripture reference or search words</label>
+      <input id="go-input" name="q" type="search" placeholder="John 3:16 or words to search"
+             enterkeyhint="go" spellcheck="false" maxlength="300">
+      <button type="submit" class="btn btn-primary">Go</button>
+    </form>
+
+    <div class="tools">
+      <button type="button" class="btn" id="btn-library" aria-expanded="false" aria-controls="sidebar">
+        <span aria-hidden="true">☰</span> <span class="label">Bookmarks &amp; history</span>
+      </button>
+      <button type="button" class="btn" id="btn-settings" aria-expanded="false" aria-controls="settings-panel">
+        <span aria-hidden="true">Aa</span> <span class="label">Display</span>
+      </button>
+    </div>
+  </header>
+
+  <section id="settings-panel" class="settings-panel" hidden aria-labelledby="settings-title">
+    <div class="settings-inner">
+      <h2 id="settings-title">Display settings</h2>
+
+      <fieldset class="setting">
+        <legend>Text size</legend>
+        <div class="size-controls">
+          <button type="button" class="btn" id="font-smaller" aria-label="Decrease text size">A−</button>
+          <output id="font-size-value" aria-live="polite">20 px</output>
+          <button type="button" class="btn" id="font-larger" aria-label="Increase text size">A+</button>
+          <button type="button" class="btn btn-quiet" id="font-reset">Reset</button>
+        </div>
+      </fieldset>
+
+      <fieldset class="setting">
+        <legend>Font</legend>
+        <label class="choice"><input type="radio" name="fontFamily" value="serif"> Serif</label>
+        <label class="choice"><input type="radio" name="fontFamily" value="sans"> Sans-serif</label>
+      </fieldset>
+
+      <fieldset class="setting">
+        <legend>Theme</legend>
+        <label class="choice"><input type="radio" name="theme" value="system"> System</label>
+        <label class="choice"><input type="radio" name="theme" value="light"> Light</label>
+        <label class="choice"><input type="radio" name="theme" value="dark"> Dark</label>
+      </fieldset>
+
+      <div class="setting">
+        <label for="line-height">Line spacing</label>
+        <select id="line-height" name="lineHeight">
+          <option value="1.5">Compact</option>
+          <option value="1.7">Comfortable</option>
+          <option value="1.9">Relaxed</option>
+          <option value="2.2">Spacious</option>
+        </select>
+      </div>
+
+      <div class="setting">
+        <label for="layout">Layout</label>
+        <select id="layout" name="layout">
+          <option value="paragraphs">Paragraphs</option>
+          <option value="verses">One verse per line</option>
+        </select>
+      </div>
+
+      <div class="setting">
+        <label for="supplied">Words supplied by the translators</label>
+        <select id="supplied" name="supplied">
+          <option value="italic">Italic (traditional)</option>
+          <option value="brackets">[In brackets]</option>
+          <option value="plain">Not marked</option>
+        </select>
+      </div>
+
+      <div class="setting">
+        <label class="choice"><input type="checkbox" id="verse-numbers" name="verseNumbers"> Show verse numbers</label>
+      </div>
+
+      <p class="hint">Settings are saved in this browser only.</p>
+      <button type="button" class="btn" id="settings-close">Close</button>
+    </div>
+  </section>
+
+  <nav class="selectors" aria-label="Choose a passage">
+    <label>Book
+      <select id="sel-book"></select>
+    </label>
+    <label>Chapter
+      <select id="sel-chapter"></select>
+    </label>
+    <label>Verse
+      <select id="sel-verse"><option value="">All</option></select>
+    </label>
+    <label>to
+      <select id="sel-verse-end" disabled><option value="">—</option></select>
+    </label>
+  </nav>
+
+  <div class="layout">
+    <main id="main" tabindex="-1">
+      <div id="notice" class="notice" hidden></div>
+
+      <section id="view-passage" class="view" hidden>
+        <header class="passage-head">
+          <h1 id="passage-title" tabindex="-1">…</h1>
+          <p class="passage-sub"><span id="passage-translation">King James Version</span>
+            <a id="whole-chapter-link" href="#" data-nav hidden>Show whole chapter</a></p>
+          <div class="passage-actions">
+            <button type="button" class="btn" id="btn-copy-passage">Copy passage</button>
+            <button type="button" class="btn" id="btn-bookmark-passage" aria-pressed="false">Bookmark</button>
+          </div>
+          <form id="bookmark-form" class="bookmark-form" hidden autocomplete="off">
+            <label for="bookmark-label">Label for <strong id="bookmark-form-ref"></strong> (optional)</label>
+            <div class="row">
+              <input id="bookmark-label" type="text" maxlength="200" placeholder="e.g. God's love">
+              <button type="submit" class="btn btn-primary">Save bookmark</button>
+              <button type="button" class="btn btn-quiet" id="bookmark-cancel">Cancel</button>
+            </div>
+          </form>
+        </header>
+        <nav class="chapter-nav" aria-label="Previous and next chapter">
+          <a class="btn prev" id="prev-top" data-nav rel="prev" href="#"><span aria-hidden="true">←</span> <span class="t"></span></a>
+          <a class="btn next" id="next-top" data-nav rel="next" href="#"><span class="t"></span> <span aria-hidden="true">→</span></a>
+        </nav>
+        <article id="passage" class="passage" lang="en"></article>
+        <nav class="chapter-nav bottom" aria-label="Previous and next chapter (bottom)">
+          <a class="btn prev" id="prev-bottom" data-nav rel="prev" href="#"><span aria-hidden="true">←</span> <span class="t"></span></a>
+          <a class="btn next" id="next-bottom" data-nav rel="next" href="#"><span class="t"></span> <span aria-hidden="true">→</span></a>
+        </nav>
+      </section>
+
+      <section id="view-search" class="view" hidden aria-labelledby="search-title">
+        <h1 id="search-title" tabindex="-1">Search</h1>
+        <form id="search-form" class="search-form" role="search" autocomplete="off">
+          <div class="search-row">
+            <label for="search-q" class="visually-hidden">Search words or phrase</label>
+            <input id="search-q" name="q" type="search" maxlength="300" placeholder='e.g. faith, or "fear not"'>
+            <button type="submit" class="btn btn-primary">Search</button>
+          </div>
+          <div class="search-options">
+            <label>Match
+              <select id="search-mode" name="mode">
+                <option value="auto">All words (use “quotes” for a phrase)</option>
+                <option value="phrase">Exact phrase</option>
+                <option value="any">Any word</option>
+              </select>
+            </label>
+            <label>In
+              <select id="search-testament" name="testament">
+                <option value="">Whole Bible</option>
+                <option value="OT">Old Testament</option>
+                <option value="NT">New Testament</option>
+              </select>
+            </label>
+            <label>Order
+              <select id="search-sort" name="sort">
+                <option value="canonical">Bible order</option>
+                <option value="relevance">Relevance</option>
+              </select>
+            </label>
+          </div>
+        </form>
+        <div id="search-refs" class="ref-offers" hidden></div>
+        <p id="search-status" class="search-status" role="status" aria-live="polite"></p>
+        <ol id="search-results" class="search-results"></ol>
+        <button type="button" class="btn" id="search-more" hidden>Show more results</button>
+      </section>
+
+      <section id="view-message" class="view message" hidden>
+        <h1 id="message-title" tabindex="-1">Not found</h1>
+        <p id="message-text" role="alert"></p>
+        <p id="message-actions"></p>
+      </section>
+    </main>
+
+    <aside id="sidebar" class="sidebar" aria-label="Bookmarks and reading history">
+      <section aria-labelledby="bm-title">
+        <h2 id="bm-title">Bookmarks</h2>
+        <ul id="bookmark-list" class="item-list"></ul>
+        <p id="bookmark-empty" class="empty">No bookmarks yet. Select a verse number or use “Bookmark”.</p>
+      </section>
+      <section aria-labelledby="hist-title">
+        <h2 id="hist-title">Recent reading</h2>
+        <ul id="history-list" class="item-list"></ul>
+        <p id="history-empty" class="empty">Nothing read yet.</p>
+        <button type="button" class="btn btn-quiet" id="history-clear">Clear history</button>
+      </section>
+      <p class="storage-note" id="storage-note"></p>
+    </aside>
+  </div>
+
+  <div id="selection-bar" class="selection-bar" hidden role="region" aria-label="Selected verses">
+    <span id="selection-ref" class="selection-ref"></span>
+    <button type="button" class="btn" id="sel-copy">Copy</button>
+    <button type="button" class="btn" id="sel-bookmark">Bookmark</button>
+    <button type="button" class="btn" id="sel-link">Copy link</button>
+    <button type="button" class="btn btn-quiet" id="sel-clear" aria-label="Clear selection">✕</button>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <footer class="footer">
+    <p id="attribution">King James Version (Authorized Version), 1769 text. Public domain.</p>
+    <p>No adverts. No tracking. Works offline.
+      <span class="kbd-help">Keys: <kbd>←</kbd>/<kbd>→</kbd> chapter, <kbd>/</kbd> search, <kbd>Esc</kbd> close.</span></p>
+  </footer>
+</body>
+</html>

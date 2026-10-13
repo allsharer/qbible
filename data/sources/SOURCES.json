@@ -1,0 +1,22 @@
+{
+  "kjv": {
+    "file": "eng-kjv_vpl.zip",
+    "format": "vpl",
+    "sha256": "970b0564b6816737928ebfb2fec910b96586e242c6311927f3b6c507b76418f3",
+    "url": "https://ebible.org/Scriptures/eng-kjv_vpl.zip",
+    "details_url": "https://ebible.org/Scriptures/details.php?id=eng-kjv",
+    "retrieved": "2026-10-13",
+    "source_name": "eBible.org (text courtesy of the CrossWire Bible Society and eBible.org), edition dated 2026-09-26",
+    "translation": {
+      "id": "kjv",
+      "name": "King James Version",
+      "abbreviation": "KJV",
+      "language": "en",
+      "versification": "kjv",
+      "licence": "Public Domain (outside the United Kingdom; see notes)",
+      "copyright": "Public domain. In the United Kingdom, rights in the Authorized Version are vested in the Crown and administered by the King's Printer (Cambridge University Press) under letters patent.",
+      "attribution": "King James Version (Authorized Version), standardised 1769 text. Electronic text courtesy of the CrossWire Bible Society and eBible.org.",
+      "notes": "Bible text only; the Apocrypha present in the source archive is excluded. [ ] marks words supplied by the translators (traditionally printed in italics); ¶ marks paragraph starts. Psalm titles are part of verse 1, as in the source."
+    }
+  }
+}
