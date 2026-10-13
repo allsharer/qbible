@@ -8,7 +8,7 @@
 
 import { test, before, after, describe } from "node:test";
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
@@ -20,11 +20,18 @@ const CHROME = process.env.CHROME_PATH ||
   ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser"]
     .find((p) => existsSync(p));
 
-async function startServer(extraArgs = []) {
+async function startServer(extraArgs = [], { withTestTranslation = false } = {}) {
   const home = mkdtempSync(join(tmpdir(), "qbible-browser-"));
+  const env = { ...process.env, QBIBLE_DATA_HOME: join(home, "data"), QBIBLE_CONFIG_HOME: join(home, "config") };
+  if (withTestTranslation) {
+    const r = spawnSync("python3", ["-m", "qbible", "import", join(ROOT, "tests/browser/fixtures/test-translation.tsv"),
+      "--id", "test", "--name", "Test Translation", "--abbreviation", "TST", "--licence", "Test fixture",
+      "--attribution", "Synthetic test fixture."], { cwd: ROOT, env, encoding: "utf8" });
+    if (r.status !== 0) throw new Error(`fixture import failed: ${r.stderr}`);
+  }
   const proc = spawn("python3", ["-m", "qbible", "serve", "--port", "0", ...extraArgs], {
     cwd: ROOT,
-    env: { ...process.env, QBIBLE_DATA_HOME: join(home, "data"), QBIBLE_CONFIG_HOME: join(home, "config") },
+    env,
     stdio: ["ignore", "pipe", "pipe"],
   });
   const url = await new Promise((resolve, reject) => {
@@ -87,6 +94,9 @@ describe("qbible browser interface", { skip: !CHROME && "Chrome/Chromium not fou
     const first = await text(page, "#v1-1");
     assert.match(first, /In the beginning God created the heaven and the earth\./);
     assert.equal(await text(page, "#translation-badge"), "KJV");
+    // With only one translation installed, a badge is shown instead of the picker.
+    assert.equal(await page.$eval("#translation-picker", (e) => e.hidden), true);
+    assert.equal(await page.$eval("#translation-badge", (e) => e.hidden), false);
   });
 
   test("direct passage URLs: verse, range and chapter", async () => {
@@ -409,5 +419,113 @@ describe("browser-only storage mode (--no-user-data)", { skip: !CHROME && "Chrom
     assert.equal(hist[0].key, "JHN.4");
     const status = await page.evaluate(() => fetch("/api/v1/user/bookmarks").then((r) => r.status));
     assert.equal(status, 404);
+  });
+});
+
+describe("translation picker (two translations installed)", { skip: !CHROME && "Chrome/Chromium not found" }, () => {
+  let server;
+  let browser;
+  let page;
+  before(async () => {
+    server = await startServer([], { withTestTranslation: true });
+    browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ["--no-sandbox"] });
+    page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 900 });
+  });
+  after(async () => {
+    if (browser) await browser.close();
+    stopServer(server);
+  });
+
+  const pickTranslation = async (id) => {
+    const n = await routes(page);
+    await page.select("#translation-select", id);
+    await waitRoute(page, n);
+  };
+
+  test("picker lists installed translations, default first, with an accessible label", async () => {
+    await goto(page, server.url + "/bible/kjv/john/3");
+    assert.equal(await page.$eval("#translation-picker", (e) => e.hidden), false);
+    assert.equal(await page.$eval("#translation-badge", (e) => e.hidden), true);
+    const options = await page.$$eval("#translation-select option", (os) => os.map((o) => [o.value, o.textContent]));
+    assert.deepEqual(options, [["kjv", "KJV"], ["test", "TST"]]);
+    assert.equal(await page.$eval("#translation-select", (s) => s.value), "kjv");
+    assert.equal(await page.$eval("#translation-picker", (l) => l.textContent.trim().startsWith("Translation")), true);
+  });
+
+  test("switching keeps the same passage, updates URL, books and attribution; Back restores", async () => {
+    await goto(page, server.url + "/bible/kjv/john/3");
+    await pickTranslation("test");
+    assert.equal(new URL(page.url()).pathname, "/bible/test/john/3");
+    assert.equal(await text(page, "#passage-title"), "John 3");
+    assert.equal(await text(page, "#passage-translation"), "Test Translation");
+    assert.match(await text(page, "#v3-1"), /Testword fixture text for John three verse one\./);
+    assert.match(await page.title(), /John 3 \(TST\)/);
+    const books = await page.$$eval("#sel-book option", (os) => os.map((o) => o.textContent));
+    assert.deepEqual(books, ["Genesis", "John"]);
+    assert.equal(await text(page, "#attribution"), "Synthetic test fixture.");
+    const prefs = await page.evaluate(() => JSON.parse(localStorage.getItem("qbible.prefs.v1")));
+    assert.equal(prefs.translation, "test");
+
+    const n = await routes(page);
+    await page.goBack();
+    await waitRoute(page, n);
+    assert.equal(await page.$eval("#translation-select", (s) => s.value), "kjv");
+    assert.match(await text(page, "#v3-16"), /For God so loved/);
+    assert.equal((await page.$$("#sel-book option")).length, 66);
+  });
+
+  test("a passage missing from the chosen translation is reported, not substituted", async () => {
+    await goto(page, server.url + "/bible/kjv/john/3/16");
+    await pickTranslation("test");
+    assert.equal(new URL(page.url()).pathname, "/bible/test/john/3/16");
+    assert.equal(await page.$eval("#view-message", (e) => e.hidden), false);
+    assert.match(await text(page, "#message-text"), /John 3 has 3 verses; there is no verse 16\. \(Test Translation\)/);
+    const n = await routes(page);
+    await page.click("#message-actions a");
+    await waitRoute(page, n);
+    assert.equal(new URL(page.url()).pathname, "/bible/kjv/john/3/16");
+    assert.equal(await text(page, "#passage-title"), "John 3:16");
+
+    await goto(page, server.url + "/bible/test/romans/8");
+    assert.match(await text(page, "#message-text"), /Romans is not included in the Test Translation\./);
+    assert.match(await text(page, "#message-actions"), /Open in KJV/);
+  });
+
+  test("unknown translation in a URL is reported", async () => {
+    await goto(page, server.url + "/bible/zzz/john/3");
+    assert.equal(await text(page, "#message-title"), "Translation not installed");
+    assert.match(await text(page, "#message-actions"), /Open in KJV.*Open in TST/s);
+  });
+
+  test("search follows the chosen translation", async () => {
+    await goto(page, server.url + "/bible/test/john/3");
+    let n = await routes(page);
+    await page.type("#go-input", "testword");
+    await page.keyboard.press("Enter");
+    await waitRoute(page, n);
+    assert.equal(new URL(page.url()).searchParams.get("t"), "test");
+    await page.waitForFunction(() => document.querySelectorAll("#search-results li").length === 7);
+    const href = await page.$eval("#search-results li a", (a) => a.getAttribute("href"));
+    assert.equal(href, "/bible/test/genesis/1/1");
+
+    await pickTranslation("kjv");
+    assert.equal(new URL(page.url()).searchParams.get("t"), null);
+    await page.waitForFunction(() => /No verses match/.test(document.getElementById("search-status").textContent));
+  });
+
+  test("bookmarks remember their translation", async () => {
+    await goto(page, server.url + "/bible/test/john/3/2");
+    await page.click("#btn-bookmark-passage");
+    await page.click('#bookmark-form button[type="submit"]');
+    await page.waitForFunction(() => document.querySelectorAll("#bookmark-list li").length === 1);
+    assert.equal(await text(page, "#bookmark-list li a"), "John 3:2");
+    await goto(page, server.url + "/bible/kjv/genesis/1");
+    assert.equal(await text(page, "#bookmark-list li a"), "John 3:2 (TST)");
+    const n = await routes(page);
+    await page.click("#bookmark-list li a");
+    await waitRoute(page, n);
+    assert.equal(new URL(page.url()).pathname, "/bible/test/john/3/2");
+    assert.equal(await page.$eval("#translation-select", (s) => s.value), "test");
   });
 });

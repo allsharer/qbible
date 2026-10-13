@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Browser: translation picker, shown when more than one translation is installed. Switching
+  keeps the current passage or search. Passages or books missing from the chosen translation
+  are reported with links to translations that have them. The choice is remembered per browser.
+  Bookmarks and history from other translations are labelled with their abbreviation.
+- Search URLs carry the translation (`/search?q=…&t=ID`) when it isn't the default.
+
 ## 1.0.0 — 2026-10-13
 
 First release.

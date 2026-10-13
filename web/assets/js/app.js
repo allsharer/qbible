@@ -9,8 +9,14 @@ const $ = (id) => document.getElementById(id);
 
 const state = {
   info: null,
-  translation: "kjv",
+  translation: null, // current translation id (taken from the URL)
   translationInfo: null,
+  defaultTranslation: "kjv",
+  translations: [], // installed translations (default first)
+  booksCache: new Map(), // translation id -> books list
+  slugById: new Map(), // canonical book slugs (identical in every translation)
+  idBySlug: new Map(),
+  nameById: new Map(),
   books: [],
   byId: new Map(),
   bySlug: new Map(),
@@ -77,9 +83,9 @@ const KEY_RE = /^([0-9A-Z]{3})(?:\.(\d+)(?:\.(\d+))?)?(?:-([0-9A-Z]{3})\.(\d+)(?
 /** Stable URL for a reference key, e.g. JHN.3.16-JHN.3.21 -> /bible/kjv/john/3/16-21 */
 export function pathForKey(t, key) {
   const m = KEY_RE.exec(key || "");
-  const book = m && state.byId.get(m[1]);
-  if (!book) return "/";
-  const base = `/bible/${encodeURIComponent(t)}/${book.slug}`;
+  const slug = m && state.slugById.get(m[1]);
+  if (!slug) return "/";
+  const base = `/bible/${encodeURIComponent(t)}/${slug}`;
   const [c1, v1, c2, v2] = [m[2], m[3], m[5], m[6]];
   if (!c1) return base;
   if (!v1) return c2 && c2 !== c1 ? `${base}/${c1}-${c2}` : `${base}/${c1}`;
@@ -128,9 +134,98 @@ function showMessage(title, message, actions = []) {
   focusHeading("message-title");
 }
 
+function searchUrl(q, t = state.translation) {
+  const params = new URLSearchParams({ q });
+  if (t && t !== state.defaultTranslation) params.set("t", t);
+  return `/search?${params}`;
+}
+
 function searchLink(q, label) {
-  return el("a", { href: `/search?q=${encodeURIComponent(q)}`, "data-nav": true,
+  return el("a", { href: searchUrl(q), "data-nav": true,
     text: label || `Search for “${q}” as words instead` });
+}
+
+// ---------------------------------------------------------------- translations
+
+function translationInfo(t) {
+  return state.translations.find((x) => x.id === t) || null;
+}
+
+function preferredTranslation() {
+  const p = state.prefs.translation;
+  return p && translationInfo(p) ? p : state.defaultTranslation;
+}
+
+async function loadBooks(t) {
+  if (!state.booksCache.has(t)) {
+    const res = await api.books(t);
+    state.booksCache.set(t, res.books);
+    for (const b of res.books) {
+      state.slugById.set(b.id, b.slug);
+      state.idBySlug.set(b.slug, b.id);
+      state.nameById.set(b.id, b.name);
+    }
+  }
+  return state.booksCache.get(t);
+}
+
+/** Make ``t`` the current translation: books, selectors, picker and attribution. */
+async function useTranslation(t) {
+  if (t === state.translation && state.books.length) return;
+  const books = await loadBooks(t);
+  state.translation = t;
+  state.translationInfo = translationInfo(t);
+  state.books = books;
+  state.byId = new Map(books.map((b) => [b.id, b]));
+  state.bySlug = new Map(books.map((b) => [b.slug, b]));
+  const groups = [["OT", "Old Testament"], ["NT", "New Testament"]]
+    .map(([test, label]) => [label, books.filter((b) => b.testament === test)])
+    .filter(([, list]) => list.length)
+    .map(([label, list]) => el("optgroup", { label }, ...list.map((b) => el("option", { value: b.id, text: b.name }))));
+  $("sel-book").replaceChildren(...groups);
+  const info = state.translationInfo;
+  $("translation-badge").textContent = info.abbreviation;
+  $("translation-badge").title = info.name;
+  $("translation-select").value = t;
+  $("translation-select").title = info.name;
+  $("attribution").textContent = info.attribution || info.name;
+  refreshBookmarks();
+}
+
+function fillTranslationPicker() {
+  const select = $("translation-select");
+  select.replaceChildren(...state.translations.map((t) =>
+    el("option", { value: t.id, text: t.abbreviation, title: t.name, "aria-label": t.name })));
+  const multiple = state.translations.length > 1;
+  $("translation-picker").hidden = !multiple;
+  $("translation-badge").hidden = multiple;
+}
+
+/** Links to the same path in every other installed translation. */
+function otherTranslationLinks(path, except) {
+  return state.translations
+    .filter((t) => t.id !== except)
+    .map((t) => el("a", { href: path.replace(/^\/bible\/[^/]+/, `/bible/${t.id}`), "data-nav": true,
+      text: `Open in ${t.abbreviation} (${t.name})` }));
+}
+
+async function onTranslationPicked(t) {
+  if (!translationInfo(t)) return;
+  state.prefs = { ...state.prefs, translation: t };
+  savePrefs(state.prefs);
+  if (!$("view-search").hidden) {
+    const params = new URLSearchParams(location.search);
+    if (t === state.defaultTranslation) params.delete("t");
+    else params.set("t", t);
+    navigate(`/search?${params}`);
+  } else if (!$("view-passage").hidden && state.passage) {
+    // Same passage in the new translation; if it does not exist there, the
+    // passage view says so rather than substituting something else.
+    navigate(pathForKey(t, state.passage.reference.key));
+  } else {
+    const books = await loadBooks(t);
+    navigate(`/bible/${t}/${books[0].slug}/1`);
+  }
 }
 
 // ---------------------------------------------------------------- routing
@@ -144,27 +239,49 @@ async function route() {
   try {
     if (path === "/" || path === "/index.html") {
       const hist = await state.store.history(1).catch(() => []);
-      const target = hist.length ? pathForKey(hist[0].translation, hist[0].key)
-        : `/bible/${state.translation}/genesis/1`;
+      let target;
+      if (hist.length && translationInfo(hist[0].translation)) {
+        target = pathForKey(hist[0].translation, hist[0].key);
+      } else {
+        const t = preferredTranslation();
+        target = `/bible/${t}/${(await loadBooks(t))[0].slug}/1`;
+      }
       history.replaceState({}, "", target);
       return await route();
     }
     if (path === "/search") {
       showNotice(null);
-      await showSearch(new URLSearchParams(location.search));
+      const params = new URLSearchParams(location.search);
+      const t = params.get("t") || state.defaultTranslation;
+      if (!translationInfo(t)) {
+        showMessage("Translation not installed", `The translation “${t}” is not installed.`,
+          [el("a", { href: searchUrl(params.get("q") || "", state.defaultTranslation), "data-nav": true,
+            text: "Search the default translation instead" })]);
+        return;
+      }
+      await useTranslation(t);
+      await showSearch(params);
       return;
     }
     const m = /^\/bible\/([a-z0-9-]+)\/([a-z0-9-]+)(?:\/([0-9]+(?:-[0-9]+)?))?(?:\/([0-9]+(?:-[0-9]+(?::[0-9]+)?)?))?\/?$/.exec(path);
     if (m) {
       const [, t, slug, chapter, verses] = m;
-      const book = state.bySlug.get(slug);
-      if (t !== state.translation) {
-        showMessage("Translation not available", `The translation “${t}” is not installed.`,
-          [el("a", { href: `/bible/${state.translation}/${slug}/${chapter || 1}`, "data-nav": true, text: `Open in ${state.translationInfo.abbreviation}` })]);
+      if (!translationInfo(t)) {
+        showMessage("Translation not installed", `The translation “${t}” is not installed.`,
+          otherTranslationLinks(path, t));
         return;
       }
-      if (!book) {
+      await useTranslation(t);
+      const bookId = state.idBySlug.get(slug);
+      if (!bookId) {
         showMessage("Book not found", `“${slug}” is not a book of the Bible.`, [searchLink(slug)]);
+        return;
+      }
+      const book = state.byId.get(bookId);
+      if (!book) {
+        showMessage("Book not in this translation",
+          `${state.nameById.get(bookId)} is not included in the ${state.translationInfo.name}.`,
+          otherTranslationLinks(path, t));
         return;
       }
       let ref = book.id;
@@ -190,7 +307,10 @@ async function showPassage(ref, notice) {
     data = await api.passage(state.translation, ref);
   } catch (e) {
     if (e instanceof ApiError && e.status >= 400 && e.status < 500) {
-      showMessage("Passage not found", e.message, [el("a", { href: "/", "data-nav": true, text: "Back to your reading" })]);
+      // e.g. a verse that exists in one translation's versification but not this one
+      showMessage("Passage not found", `${e.message} (${state.translationInfo.name})`,
+        [...otherTranslationLinks(location.pathname, state.translation),
+         el("a", { href: "/", "data-nav": true, text: "Back to your reading" })]);
       return;
     }
     showMessage("Something went wrong", e.message || String(e));
@@ -461,7 +581,8 @@ async function refreshBookmarks() {
   const list = $("bookmark-list");
   list.replaceChildren(...state.bookmarks.map((b) => {
     const link = el("a", { href: pathForKey(b.translation, b.key), "data-nav": true },
-      b.reference + (b.translation !== state.translation ? ` (${b.translation.toUpperCase()})` : ""),
+      b.reference + (b.translation !== state.translation
+        ? ` (${(translationInfo(b.translation) || { abbreviation: b.translation.toUpperCase() }).abbreviation})` : ""),
       b.label ? el("span", { class: "lbl", text: b.label }) : null);
     const rm = el("button", { type: "button", class: "btn btn-quiet remove", text: "✕",
       "aria-label": `Remove bookmark ${b.reference}`, title: "Remove bookmark" });
@@ -476,7 +597,9 @@ async function refreshHistory() {
   let items = [];
   try { items = await state.store.history(15); } catch (e) { items = []; }
   $("history-list").replaceChildren(...items.map((h) =>
-    el("li", {}, el("a", { href: pathForKey(h.translation, h.key), "data-nav": true, text: h.reference }))));
+    el("li", {}, el("a", { href: pathForKey(h.translation, h.key), "data-nav": true,
+      text: h.reference + (h.translation !== state.translation
+        ? ` (${(translationInfo(h.translation) || { abbreviation: h.translation.toUpperCase() }).abbreviation})` : "") }))));
   $("history-empty").hidden = items.length > 0;
   $("history-clear").hidden = items.length === 0;
 }
@@ -567,6 +690,7 @@ function submitSearchForm(e) {
   if ($("search-mode").value !== "auto") params.set("mode", $("search-mode").value);
   if ($("search-testament").value) params.set("testament", $("search-testament").value);
   if ($("search-sort").value !== "canonical") params.set("sort", $("search-sort").value);
+  if (state.translation !== state.defaultTranslation) params.set("t", state.translation);
   navigate(`/search?${params}`);
 }
 
@@ -587,7 +711,7 @@ async function submitGoForm(e) {
     return;
   }
   $("go-input").value = "";
-  navigate(`/search?q=${encodeURIComponent(q)}`);
+  navigate(searchUrl(q));
 }
 
 // ---------------------------------------------------------------- settings & panels
@@ -770,25 +894,19 @@ async function start() {
   try {
     state.info = await api.info();
     state.store = state.info.user_data ? new ServerStore() : new LocalStore();
-    state.translation = state.info.default_translation;
     const tr = await api.translations();
-    state.translationInfo = tr.translations.find((t) => t.id === state.translation) || tr.translations[0];
-    const books = await api.books(state.translation);
-    state.books = books.books;
+    state.defaultTranslation = tr.default || state.info.default_translation;
+    // Default first, then alphabetical by name.
+    state.translations = tr.translations.slice().sort((a, b) =>
+      (b.id === state.defaultTranslation) - (a.id === state.defaultTranslation) || a.name.localeCompare(b.name));
+    fillTranslationPicker();
+    await loadBooks(state.defaultTranslation); // canonical book slugs for links
+    await useTranslation(preferredTranslation());
   } catch (e) {
     showMessage("qbible could not start", e.message || String(e));
     return;
   }
-  for (const b of state.books) {
-    state.byId.set(b.id, b);
-    state.bySlug.set(b.slug, b);
-  }
-  const groups = [["OT", "Old Testament"], ["NT", "New Testament"]].map(([t, label]) =>
-    el("optgroup", { label }, ...state.books.filter((b) => b.testament === t).map((b) => el("option", { value: b.id, text: b.name }))));
-  $("sel-book").replaceChildren(...groups);
-  $("translation-badge").textContent = state.translationInfo.abbreviation;
-  $("translation-badge").title = state.translationInfo.name;
-  $("attribution").textContent = state.translationInfo.attribution || state.translationInfo.name;
+  $("translation-select").addEventListener("change", (e) => onTranslationPicked(e.target.value));
   $("storage-note").textContent = state.store.description;
   document.documentElement.dataset.ready = "true";
   await refreshBookmarks();

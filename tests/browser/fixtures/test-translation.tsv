@@ -1,0 +1,9 @@
+# A tiny synthetic "translation" used only by the browser tests. Not scripture text.
+# Chapters must be sequential from 1, so John includes one-verse chapters 1 and 2.
+GEN	1	1	Testword fixture text for Genesis one verse one.
+GEN	1	2	Testword fixture text for Genesis one verse two.
+JHN	1	1	Testword fixture text for John one verse one.
+JHN	2	1	Testword fixture text for John two verse one.
+JHN	3	1	Testword fixture text for John three verse one.
+JHN	3	2	Testword fixture text for John three verse two.
+JHN	3	3	Testword fixture text for John three verse three.

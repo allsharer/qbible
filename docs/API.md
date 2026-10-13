@@ -24,7 +24,7 @@ translation or bookmark), 413 (body too large), 421 (unrecognised Host) or 503 (
 | `/bible/{t}/{book}/{c}/{v}` | a verse, e.g. `/bible/kjv/john/3/16` |
 | `/bible/{t}/{book}/{c}/{v1}-{v2}` | a range, e.g. `/bible/kjv/john/3/16-21` |
 | `/bible/{t}/{book}/{c1}/{v1}-{c2}:{v2}` | a range across chapters |
-| `/search?q=…&mode=auto\|phrase\|any&testament=OT\|NT&sort=canonical\|relevance` | search |
+| `/search?q=…&mode=auto\|phrase\|any&testament=OT\|NT&sort=canonical\|relevance&t=ID` | search (`t` is omitted for the default translation) |
 
 `{book}` is the lower-case slug from `books.json` (`genesis`, `1-samuel`, `song-of-solomon`,
 `john`, `1-john`, …). These URLs are stable.

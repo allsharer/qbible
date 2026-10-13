@@ -69,4 +69,4 @@ The architecture allows a public deployment of the browser interface. Recommende
    them.
 
 Not yet implemented for public hosting: a separate production configuration file, built-in rate
-limiting, a translation picker in the browser, and pre-rendered static output.
+limiting, and pre-rendered static output.

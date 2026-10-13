@@ -297,6 +297,23 @@ only on this computer (127.0.0.1). It refuses other addresses unless you pass
   **Copy passage** copies everything shown.
 - Normal text selection and copying work as usual. Verse numbers are left out of copied text.
 
+### Choosing a translation
+
+With only the KJV installed, a **KJV** badge is shown. Once you have
+[imported another translation](#additional-bible-translations), the badge becomes a
+**translation picker**:
+
+- Choosing a translation keeps you on the **same passage**
+  (`/bible/kjv/john/3` → `/bible/web/john/3`). If that passage doesn't exist in the other
+  translation (a book it doesn't include, or a verse its versification lacks), qbible says so and
+  offers links to the translations that have it. It never substitutes a different passage.
+- On the search page, the search re-runs in the chosen translation (`/search?q=…&t=web`).
+- The translation is part of every address, so links, Back/Forward and browser bookmarks always
+  open the translation they were made in. qbible bookmarks and history remember their
+  translation too, and entries from another translation are labelled, e.g. `John 3:16 (WEB)`.
+- Your last choice is remembered in this browser and used when you open qbible without an
+  address and with no reading history.
+
 ### Searching
 
 The search page offers **All words** (quotes for phrases), **Exact phrase** or **Any word**, a
@@ -410,9 +427,10 @@ qbible remove-translation web
 
 Imports are validated (structure, numbering, versification compared with the KJV, which is a
 warning for other translations because versifications legitimately differ) and stored in your
-user directory. They cannot replace the bundled KJV. In this release, the browser interface
-shows the default translation (`qbible config set reading.translation web` switches it). A
-translation picker in the browser is planned.
+user directory. They cannot replace the bundled KJV. Once more than one translation is
+installed, the browser shows a **translation picker** next to the qbible name (see
+[below](#choosing-a-translation)). `qbible config set reading.translation web` changes the
+default for both the CLI and the browser.
 
 ---
 

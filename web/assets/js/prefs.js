@@ -14,6 +14,7 @@ export const DEFAULTS = Object.freeze({
   supplied: "italic",
   verseNumbers: true,
   libraryOpen: null, // null = default for the screen size
+  translation: null, // last translation chosen in the picker (null = server default)
 });
 
 const ALLOWED = {
@@ -33,6 +34,7 @@ function sanitise(p) {
   for (const [k, values] of Object.entries(ALLOWED)) if (values.includes(p[k])) out[k] = p[k];
   if (typeof p.verseNumbers === "boolean") out.verseNumbers = p.verseNumbers;
   if (typeof p.libraryOpen === "boolean") out.libraryOpen = p.libraryOpen;
+  if (typeof p.translation === "string" && /^[a-z0-9][a-z0-9-]{0,31}$/.test(p.translation)) out.translation = p.translation;
   return out;
 }
 
