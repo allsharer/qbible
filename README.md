@@ -70,7 +70,7 @@ computer, because both use the same per-user database.
 ### Option A: Debian package (system-wide, recommended on Ubuntu)
 
 ```sh
-sudo apt install ./qbible_1.0.0_all.deb
+sudo apt install ./qbible_1.1.0_all.deb
 ```
 
 This installs:
@@ -451,7 +451,7 @@ download a browser. Tests use temporary data directories and never touch your bo
 ## Building the Debian package
 
 ```sh
-make deb              # -> dist/qbible_1.0.0_all.deb  (dpkg-deb, no root needed)
+make deb              # -> dist/qbible_1.1.0_all.deb  (dpkg-deb, no root needed)
 make test-deb         # lintian + run the extracted package (read, search, validate, server)
 make release          # data, all tests, .deb, package checks, source tarball and SHA256SUMS
 ```

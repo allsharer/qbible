@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 — 2026-10-13
 
 - Browser: translation picker, shown when more than one translation is installed. Switching
   keeps the current passage or search. Passages or books missing from the chosen translation
