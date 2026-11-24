@@ -153,5 +153,22 @@ class SearchTests(unittest.TestCase):
         self.assertLess(time.perf_counter() - t, 2.0)
 
 
+class SharedVectorTests(unittest.TestCase):
+    """spec/search-cases.json (shared with the Android client) matches this engine."""
+
+    def test_search_cases_are_up_to_date(self):
+        require_kjv()
+        import importlib.util
+
+        from .helpers import ROOT
+
+        spec = importlib.util.spec_from_file_location("export_search_cases", ROOT / "tools" / "export_search_cases.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        current = (ROOT / "spec" / "search-cases.json").read_text(encoding="utf-8")
+        self.assertEqual(current, mod.render(),
+                         "spec/search-cases.json is out of date: run python3 tools/export_search_cases.py")
+
+
 if __name__ == "__main__":
     unittest.main()
