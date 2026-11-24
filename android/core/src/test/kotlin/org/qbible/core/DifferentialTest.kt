@@ -10,7 +10,7 @@ import java.io.File
  * every one.
  */
 class DifferentialTest {
-    private val data = TestData.json(File(TestData.dataDir, "differential.json"))
+    private val data = TestData.json(File(TestData.testDir, "differential.json"))
     private val bible = TestData.bible
     private val books = TestData.catalogue
 

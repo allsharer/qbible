@@ -60,13 +60,13 @@ class UserStoreTest {
     /** A user.sqlite written by the desktop qbible opens unchanged, with the same keys. */
     @Test
     fun readsDesktopDatabase() {
-        val src = File(TestData.dataDir, "desktop-user.sqlite")
+        val src = File(TestData.testDir, "desktop-user.sqlite")
         val copy = Files.createTempFile("desktop", ".sqlite").toFile()
         src.copyTo(copy, overwrite = true)
         val db = JdbcDb.open(copy)
         val s = UserStore(db, books)
         assertTrue(s.migrate().isEmpty()) // already at the latest schema
-        val want = TestData.json(File(TestData.dataDir, "differential.json")).getJSONObject("user")
+        val want = TestData.json(File(TestData.testDir, "differential.json")).getJSONObject("user")
         assertEquals(want.getJSONArray("bookmarks").objects().map { listOf(it.getString("key"), it.getString("reference"), it.getString("label"), it.getString("created_at")) },
             s.bookmarks().map { listOf(it.key, it.reference.display(), it.label, it.createdAt) })
         assertEquals(want.getJSONArray("history").objects().map { it.getString("key") to it.getString("opened_at") },

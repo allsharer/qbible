@@ -8,12 +8,16 @@ plugins {
 
 // ---------------------------------------------------------------------------
 // Shared data generated from the repository (never copied into the source tree):
+// App assets, in build/qbible-assets/ (packaged into the APK):
 //   books.json         <- ../qbible/resources/books.json (the single book list)
 //   kjv-android.sqlite <- ../build/translations/kjv.sqlite via tools/make_android_pack.py
 //                         (FTS5 search index replaced by an equivalent FTS4 index)
+// Test-only data, in build/qbible-test/ (never packaged):
+//   differential.json, desktop-user.sqlite <- tools/differential_vectors.py
 // ---------------------------------------------------------------------------
 val repoRoot: File = rootDir.parentFile
-val packDir = layout.buildDirectory.dir("qbible-data")
+val packDir = layout.buildDirectory.dir("qbible-assets")
+val testDataDir = layout.buildDirectory.dir("qbible-test")
 val python = providers.gradleProperty("qbible.python").getOrElse("python3")
 val desktopPack: File = providers.gradleProperty("qbible.pack").map { File(it) }
     .getOrElse(File(repoRoot, "build/translations/kjv.sqlite"))
@@ -50,10 +54,10 @@ val differentialVectors by tasks.registering(Exec::class) {
     inputs.file(desktopPack)
     inputs.file(File(rootDir, "tools/differential_vectors.py"))
     inputs.dir(File(repoRoot, "qbible")).withPropertyName("qbiblePython")
-    outputs.file(packDir.map { it.file("differential.json") })
-    outputs.file(packDir.map { it.file("desktop-user.sqlite") })
+    outputs.file(testDataDir.map { it.file("differential.json") })
+    outputs.file(testDataDir.map { it.file("desktop-user.sqlite") })
     workingDir = repoRoot
-    commandLine(python, File(rootDir, "tools/differential_vectors.py").path, packDir.get().asFile.path)
+    commandLine(python, File(rootDir, "tools/differential_vectors.py").path, testDataDir.get().asFile.path)
 }
 
 tasks.register("qbibleData") {

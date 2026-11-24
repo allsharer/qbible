@@ -22,7 +22,8 @@ val repoRoot: File = rootDir.parentFile
 tasks.test {
     dependsOn(":qbibleTestData")
     systemProperty("qbible.repoRoot", repoRoot.path)
-    systemProperty("qbible.dataDir", rootProject.layout.buildDirectory.dir("qbible-data").get().asFile.path)
+    systemProperty("qbible.assetsDir", rootProject.layout.buildDirectory.dir("qbible-assets").get().asFile.path)
+    systemProperty("qbible.testDir", rootProject.layout.buildDirectory.dir("qbible-test").get().asFile.path)
     inputs.dir(File(repoRoot, "spec"))
     inputs.file(File(repoRoot, "qbible/resources/books.json"))
     testLogging {

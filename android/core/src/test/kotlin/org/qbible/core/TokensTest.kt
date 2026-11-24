@@ -7,7 +7,7 @@ class TokensTest {
     /** Kotlin's fold/tokens reproduce the stored index tokens for every verse of the KJV. */
     @Test
     fun everyVerseTokenisesLikeTheIndex() {
-        val db = JdbcDb.open(java.io.File(TestData.dataDir, "kjv-android.sqlite"), readOnly = true)
+        val db = JdbcDb.open(java.io.File(TestData.assetsDir, "kjv-android.sqlite"), readOnly = true)
         val rows = db.query("SELECT v.id, v.text, f.body FROM verses v JOIN verses_fts4 f ON f.docid = v.id ORDER BY v.id")
         assertEquals(31102, rows.size)
         var bad = 0

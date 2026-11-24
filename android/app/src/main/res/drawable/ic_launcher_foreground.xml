@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder launcher icon (an open book), drawn for this project. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#FFFBF5"
+        android:pathData="M30,38 C38,35 47,35 54,40 C61,35 70,35 78,38 L78,72 C70,69 61,69 54,74 C47,69 38,69 30,72 Z" />
+    <path android:strokeColor="#6B4E16" android:strokeWidth="2.5"
+        android:pathData="M54,40 L54,74" />
+    <path android:strokeColor="#C9A55C" android:strokeWidth="2"
+        android:pathData="M36,46 L48,46 M36,52 L48,52 M36,58 L48,58 M60,46 L72,46 M60,52 L72,52 M60,58 L72,58" />
+</vector>

@@ -11,7 +11,8 @@ import java.sql.Statement
 /** Locations passed in by Gradle (see core/build.gradle.kts). */
 object TestData {
     val repoRoot = File(System.getProperty("qbible.repoRoot") ?: "../..")
-    val dataDir = File(System.getProperty("qbible.dataDir") ?: "../build/qbible-data")
+    val assetsDir = File(System.getProperty("qbible.assetsDir") ?: "../build/qbible-assets")
+    val testDir = File(System.getProperty("qbible.testDir") ?: "../build/qbible-test")
     val spec = File(repoRoot, "spec")
 
     val catalogue: BookCatalogue by lazy {
@@ -19,7 +20,7 @@ object TestData {
     }
 
     /** The Android KJV pack, opened read-only through JDBC. */
-    val bible: Bible by lazy { Bible(JdbcDb.open(File(dataDir, "kjv-android.sqlite"), readOnly = true), catalogue) }
+    val bible: Bible by lazy { Bible(JdbcDb.open(File(assetsDir, "kjv-android.sqlite"), readOnly = true), catalogue) }
 
     fun json(file: File): JSONObject = JSONObject(file.readText())
 }
