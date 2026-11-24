@@ -61,6 +61,32 @@ class BookTests(unittest.TestCase):
             for a in b.aliases:
                 self.assertIs(cat.resolve(a), b, a)
 
+    def test_standard_three_letter_abbreviations(self):
+        """Every abbreviation in the user's standard list resolves to its book."""
+        table = {
+            "GEN": "gen", "EXO": "exo", "LEV": "lev", "NUM": "num", "DEU": "deu",
+            "JOS": "jos", "JDG": "jdg", "RUT": "rut", "1SA": "1sa", "2SA": "2sa",
+            "1KI": "1ki", "2KI": "2ki", "1CH": "1ch", "2CH": "2ch", "EZR": "ezr",
+            "NEH": "neh", "EST": "est", "JOB": "job", "PSA": "psa", "PRO": "pro",
+            "ECC": "ecc", "SNG": "sng sol", "ISA": "isa", "JER": "jer", "LAM": "lam",
+            "EZK": "eze ezk", "DAN": "dan", "HOS": "hos", "JOL": "joe jol", "AMO": "amo",
+            "OBA": "oba", "JON": "jon", "MIC": "mic", "NAM": "nah nam", "HAB": "hab",
+            "ZEP": "zep", "HAG": "hag", "ZEC": "zec", "MAL": "mal",
+            "MAT": "mat", "MRK": "mar mrk", "LUK": "luk", "JHN": "joh jhn", "ACT": "act",
+            "ROM": "rom", "1CO": "1co", "2CO": "2co", "GAL": "gal", "EPH": "eph",
+            "PHP": "php phi", "COL": "col", "1TH": "1th", "2TH": "2th", "1TI": "1ti",
+            "2TI": "2ti", "TIT": "tit", "PHM": "phm phl", "HEB": "heb", "JAS": "jam jas",
+            "1PE": "1pe", "2PE": "2pe", "1JN": "1jo 1jn", "2JN": "2jo 2jn", "3JN": "3jo 3jn",
+            "JUD": "jud", "REV": "rev",
+        }
+        cat = catalogue()
+        self.assertEqual(len(table), 66)
+        for book_id, abbrevs in table.items():
+            for a in abbrevs.split():
+                with self.subTest(abbrev=a):
+                    self.assertEqual(cat.resolve(a).id, book_id)
+                    self.assertEqual(cat.resolve(a.upper()).id, book_id)
+
     def test_ambiguous_prefix_lists_candidates(self):
         with self.assertRaises(UnknownBookError) as cm:
             catalogue().resolve("Jo")

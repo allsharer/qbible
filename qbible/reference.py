@@ -12,6 +12,8 @@ Supported input forms (case-insensitive, flexible spacing)::
     Genesis 1-3          chapter range
     John 3:16            one verse      (also 3.16, 3 16, 3v16)
     John 3:16-21         verse range    (hyphen, en dash or em dash)
+    John 3:16-3:21       the same range, end chapter repeated
+    John 3:16-           verse 16 to the end of the chapter
     Genesis 1:1-2:3      range across chapters
     Jude 3               verse 3 of a single-chapter book
 
@@ -50,8 +52,10 @@ _SPLIT_RE = re.compile(
 )
 _NUM_PATTERNS = [
     ("c", re.compile(r"^(\d+)$")),
+    ("c-", re.compile(r"^(\d+)-$")),  # single-chapter books only ("Jude 3-")
     ("c-c", re.compile(r"^(\d+)-(\d+)$")),
     ("c:v", re.compile(r"^(\d+):(\d+)$")),
+    ("c:v-", re.compile(r"^(\d+):(\d+)-$")),
     ("c:v-v", re.compile(r"^(\d+):(\d+)-(\d+)$")),
     ("c:v-c:v", re.compile(r"^(\d+):(\d+)-(\d+):(\d+)$")),
 ]
@@ -181,6 +185,12 @@ def parse(text: str, books: BookCatalogue | None = None) -> Reference:
         if single and c != 1:
             return Reference(book, 1, c, 1, c)
         return Reference(book, c, None, c, None)
+    if kind == "c-":
+        if not single:
+            raise ReferenceSyntaxError(
+                f"Give a verse to start from, for example '{book.name} {vals[0]}:1-'."
+            )
+        return Reference(book, 1, vals[0], 1, None)
     if kind == "c-c":
         a, b = vals
         if single:
@@ -189,6 +199,9 @@ def parse(text: str, books: BookCatalogue | None = None) -> Reference:
     if kind == "c:v":
         c, v = vals
         return Reference(book, c, v, c, v)
+    if kind == "c:v-":
+        c, v = vals
+        return Reference(book, c, v, c, None)  # end verse filled in by resolve()
     if kind == "c:v-v":
         c, v1, v2 = vals
         return Reference(book, c, v1, c, v2)
@@ -262,6 +275,10 @@ def resolve(ref: Reference, verse_counts: Mapping[str, Sequence[int]]) -> Passag
         raise ReferenceSyntaxError(
             f"The range in '{format_reference(ref)}' ends before it begins."
         )
+    if ref.start_verse is not None and ref.end_verse is None:
+        # Open-ended verse range ("Mark 4:1-"): make the end concrete so the
+        # display and key name the real last verse ("Mark 4:1-41").
+        ref = Reference(book, sc, sv, ec, ev)
     return Passage(ref, (sc, sv), (ec, ev))
 
 

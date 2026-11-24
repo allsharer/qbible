@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- CLI: `read` may be left out, so `qbible mar 4:15` reads Mark 4:15. A first word that is
+  neither a command nor a book gives a clear error (exit status 2).
+- References: `Mark 4:1-` reads from verse 1 to the last verse of the chapter (shown as
+  `Mark 4:1-41`); `Jude 3-` does the same for single-chapter books. Works in the browser too.
+- New book abbreviations `Sol` (Song of Solomon), `Phi` (Philippians, previously ambiguous) and
+  `Phl` (Philemon), so every standard three-letter abbreviation is recognised.
+
 ## 1.2.0 — 2026-10-13
 
 - `qbible serve` now stops by itself once all of its browser pages are closed. Pages send

@@ -45,6 +45,25 @@ class CLITests(unittest.TestCase):
         self.assertIn("16 For God so loved the world", out)
         self.assertNotIn("¶", out)
 
+    def test_read_without_read_command(self):
+        code, out, err = run_cli("mar", "4:15")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(out.splitlines()[0], "Mark 4:15 (KJV)")
+        code, out, err = run_cli("--plain", "1sam", "4:1-")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(out.splitlines()[0], "1 Samuel 4:1-22 (KJV)")
+        code, out, err = run_cli("-t", "kjv", "mar", "4:1-5:2", "--no-heading")
+        self.assertEqual(code, 0, err)
+        lines = [l.strip() for l in out.splitlines() if l.strip()]
+        self.assertIn("Mark 5", lines)
+        self.assertTrue(lines[-1].startswith("2 And when he was come out of the ship"))
+        code, _, err = run_cli("mar", "4:42")
+        self.assertEqual(code, 3)
+        self.assertIn("no verse 42", err)
+        code, _, err = run_cli("frobnicate")
+        self.assertEqual(code, 2)
+        self.assertIn("not a command or a Bible book", err)
+
     def test_read_range_and_chapter(self):
         code, out, _ = run_cli("read", "John 3:16-21")
         self.assertEqual(code, 0)

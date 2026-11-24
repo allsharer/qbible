@@ -26,6 +26,7 @@ from .errors import (
     NotFoundError,
     QBibleError,
     ReferenceError_,
+    UnknownBookError,
     SearchQueryError,
     TranslationNotFoundError,
     UserDataError,
@@ -39,9 +40,12 @@ EXIT_OK, EXIT_NOTHING, EXIT_USAGE, EXIT_REFERENCE, EXIT_DATA, EXIT_INTERRUPTED =
 
 EPILOG = """\
 examples:
-  qbible read John 3:16            one verse
+  qbible mar 4:15                  one verse ('read' may be left out)
+  qbible mar 4:1-15                verses 1-15 (also 4:1-4:15)
+  qbible mar 4:1-5:2               a range across chapters
+  qbible mar 4:1-                  verse 1 to the end of the chapter
+  qbible 1sam 4:1                  numbered books need no space
   qbible read Psalm 23             a whole chapter
-  qbible read 1 Cor 13:4-7         a range
   qbible search "faith without works"
   qbible search love --limit 50 --page 2
   qbible next                      continue from your last reading position
@@ -701,9 +705,40 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+# Global options that take a separate value ("-t kjv"), for _implicit_read.
+_VALUE_OPTIONS = frozenset({"-t", "--translation", "--colour", "--color"})
+
+
+def _implicit_read(argv: list[str], parser: argparse.ArgumentParser) -> list[str]:
+    """Treat ``qbible mar 4:15`` as ``qbible read mar 4:15``.
+
+    If the first non-option word is not a command name, 'read' is inserted
+    before it. No book name is also a command name, so nothing is shadowed.
+    """
+    commands: set[str] = set()
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            commands.update(action.choices)
+    i = 0
+    while i < len(argv):
+        word = argv[i]
+        if word == "--":
+            return argv
+        if word.startswith("-") and len(word) > 1:
+            i += 2 if word in _VALUE_OPTIONS else 1
+            continue
+        if word in commands:
+            return argv
+        return [*argv[:i], "read", *argv[i:]]
+    return argv
+
+
 def main(argv: list[str] | None = None, out=None, err=None) -> int:
     parser = build_parser()
     argv = sys.argv[1:] if argv is None else argv
+    given = list(argv)
+    argv = _implicit_read(given, parser)
+    implicit = argv is not given
     err = err or sys.stderr
     try:
         with contextlib.redirect_stdout(out or sys.stdout), contextlib.redirect_stderr(err):
@@ -724,6 +759,15 @@ def main(argv: list[str] | None = None, out=None, err=None) -> int:
     except CLIError as e:
         print(f"qbible: {e}", file=err)
         return e.code
+    except UnknownBookError as e:
+        if implicit and not e.candidates:
+            # 'qbible frobnicate': neither a command nor a book.
+            word = argv[argv.index("read") + 1]
+            print(f"qbible: '{word}' is not a command or a Bible book. Run 'qbible --help' "
+                  "for commands or 'qbible books' for book names.", file=err)
+            return EXIT_USAGE
+        print(f"qbible: {e}", file=err)
+        return EXIT_REFERENCE
     except (ReferenceError_, NotFoundError) as e:
         print(f"qbible: {e}", file=err)
         return EXIT_REFERENCE

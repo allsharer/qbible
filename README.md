@@ -119,7 +119,7 @@ qbible [GLOBAL OPTIONS] COMMAND [ARGUMENTS]
 
 | Command | What it does | Example |
 |---|---|---|
-| `read REF` | Read a verse, range, chapter or book | `qbible read John 3:16-21` |
+| `read REF` | Read a verse, range, chapter or book (`read` may be left out) | `qbible mar 4:1-15` |
 | `chapter BOOK N` | Read a whole chapter | `qbible chapter John 3` |
 | `next` / `previous` (`prev`) | Next/previous chapter from your last reading position | `qbible next` |
 | `next --from REF` | Next chapter after a given passage | `qbible next --from Ruth 4` |
@@ -171,6 +171,24 @@ qbible read Rev 21:1-4
 qbible read Gen 1:1-2:3          # across chapters
 qbible read Jude 3               # single-chapter books: the number is a verse
 ```
+
+The word `read` is optional. If the first word is not a command, qbible reads it as a reference:
+
+```sh
+qbible mar 4:15                  # Mark 4:15
+qbible mar 4:1-15                # Mark 4:1-15 (4:1-4:15 means the same)
+qbible mar 4:1-5:2               # Mark 4:1 to Mark 5:2
+qbible mar 4:1-                  # Mark 4:1 to the last verse of chapter 4 (Mark 4:1-41)
+qbible 1sam 4:1                  # numbered books need no space: 1 Samuel 4:1
+qbible mar 4v1-5v2               # 'v' works anywhere ':' does
+```
+
+Books can be typed as standard three-letter abbreviations, case-insensitive: `Gen Exo Lev Num
+Deu Jos Jdg Rut 1Sa 2Sa 1Ki 2Ki 1Ch 2Ch Ezr Neh Est Job Psa Pro Ecc Sng/Sol Isa Jer Lam Eze/Ezk
+Dan Hos Joe/Jol Amo Oba Jon Mic Nah/Nam Hab Zep Hag Zec Mal`, and `Mat Mar/Mrk Luk Joh/Jhn Act
+Rom 1Co 2Co Gal Eph Php/Phi Col 1Th 2Th 1Ti 2Ti Tit Phm/Phl Heb Jam/Jas 1Pe 2Pe 1Jo/1Jn 2Jo/2Jn
+3Jo/3Jn Jud Rev`. Any longer beginning of a book name also works, so `gen`, `gene`, `genes`,
+`genesi` and `genesis` are all Genesis, and `1sam`, `1samu` and `1 Samuel` are all 1 Samuel.
 
 References accept full names, common abbreviations (`Gen`, `Ps`, `Mt`, `Jn`, `1 Cor`,
 `Phil`, `Philem`, `Rev` …), unambiguous beginnings of names (`Deuter`), numbered books written
