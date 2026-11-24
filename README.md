@@ -51,6 +51,9 @@ installation, everything works offline.
 | Interactive reading mode | ✔ (`shell`) | — |
 | JSON output for scripting | ✔ (`--json`) | — |
 
+An Android version is in development in [`android/`](android/README.md). It uses the same
+reference rules, search and bookmark keys, and is not yet released.
+
 Bookmarks and history are **shared** between the CLI and the browser on the same
 computer, because both use the same per-user database.
 

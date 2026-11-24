@@ -56,7 +56,7 @@
   SQLite format, `books.json` (ids, names, aliases), the versification table, and
   `spec/reference-cases.json` (parser test vectors). A Kotlin implementation of the parser
   (about 300 lines) and equivalent full-text queries can then be
-  verified against the same vectors. See [Android](#future-android-client), including the FTS5 caveat.
+  verified against the same vectors. See [Android](#android-client), including the FTS5 caveat.
 
 ## Package layout
 
@@ -165,27 +165,32 @@ input as one phrase. In the CLI, a single shell argument containing spaces is a 
 - **Display preferences** live in `localStorage` (`qbible.prefs.v1`). `boot.js` applies them
   before first paint to avoid a theme or size flash.
 
-## Future Android client
+## Android client
 
-This release is **not** an Android application. The intended path is:
+An Android client lives in `android/` (see `android/README.md`). It follows the plan below,
+which was written before it existed; the notes in *italics* record how it was done.
 
 1. **Data**: ship `kjv.sqlite` unchanged as an asset (schema v1). FTS5 is **not guaranteed** in
    Android's platform SQLite, so either bundle an SQLite build with FTS5 enabled (e.g.
-   `requery/sqlite-android`) or rebuild the `verses_fts` index as FTS4 at packaging time. The
-   query builder only uses phrase, prefix, AND/OR/NOT and rowid ranges, which FTS4 also
-   supports (FTS4 has no `bm25()`, so relevance ordering would need `matchinfo`). This must be
-   verified on target devices.
+   `requery/sqlite-android`) or rebuild the `verses_fts` index as FTS4 at packaging time.
+   *Done with FTS4: `android/tools/make_android_pack.py` replaces `verses_fts` with an FTS4
+   table `verses_fts4` holding the identical token stream (checked against the FTS5 index);
+   all other tables are unchanged. The API 35 emulator's SQLite (3.44.3) has no FTS5. Each
+   query term is a separate simple MATCH combined with SQL INTERSECT/UNION/EXCEPT, and BM25 is
+   computed in Kotlin with FTS5's formula.*
 2. **Rules**: port `books.py`, `reference.py`, `textfmt.py` and the query builder in
    `search.py` to Kotlin, reading `books.json` directly. Verify against
-   `spec/reference-cases.json` and a set of search vectors (to be exported from
-   `tests/test_search.py`).
-3. **User data**: implement the same `bookmarks` / `history` tables and reference keys (Room is
-   fine). Keys are compatible with the desktop app, so import and export or a later sync can
-   exchange them.
+   `spec/reference-cases.json` and a set of search vectors. *Done in `android/core`; the
+   search vectors are `spec/search-cases.json`, exported by `tools/export_search_cases.py`
+   and checked by `tests/test_search.py`. The Kotlin tests also compare thousands of
+   generated inputs with the Python engine.*
+3. **User data**: implement the same `bookmarks` / `history` tables and reference keys.
+   *Done (same SQL migrations, keys and timestamps; a desktop `user.sqlite` opens unchanged),
+   plus a JSON export/import.*
 4. **No desktop dependency**: the app must not call `qbible serve`. The HTTP API is for
-   browsers and future hosting.
-5. **Remaining work**: UI, Android accessibility review, Play Store packaging and signing, device
-   testing, and a shared search-vector file.
+   browsers and future hosting. *The app has no network permission.*
+5. **Remaining work**: testing on real devices, a TalkBack review, Play Store packaging and
+   signing (see `android/README.md`).
 
 ## Extending translations
 

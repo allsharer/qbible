@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.qbible.app.MainViewModel
 import org.qbible.app.Tab
@@ -73,7 +74,7 @@ fun QBibleRoot(vm: MainViewModel, onExit: () -> Unit) {
                                 vm.tab = item.tab
                             },
                             icon = { Icon(item.icon, contentDescription = null) },
-                            label = { Text(item.label) },
+                            label = { Text(item.label, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
                         )
                     }
                 }

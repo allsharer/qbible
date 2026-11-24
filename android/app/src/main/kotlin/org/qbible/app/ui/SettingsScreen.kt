@@ -48,7 +48,7 @@ fun SettingsScreen(vm: MainViewModel) {
     Column(Modifier.fillMaxSize()) {
         TopAppBar(windowInsets = WindowInsets(0), title = { Text("Settings") })
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
-            Section("Text size")
+            Section("Text size", first = true)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(onClick = { vm.updatePrefs(p.copy(fontSize = (p.fontSize - Prefs.FONT_STEP).coerceAtLeast(Prefs.FONT_MIN))) },
                     enabled = p.fontSize > Prefs.FONT_MIN) { Text("A−") }
@@ -109,8 +109,8 @@ fun SettingsScreen(vm: MainViewModel) {
 }
 
 @Composable
-private fun Section(title: String) {
-    HorizontalDivider(Modifier.padding(top = 16.dp))
+private fun Section(title: String, first: Boolean = false) {
+    if (!first) HorizontalDivider(Modifier.padding(top = 16.dp))
     Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(top = 12.dp, bottom = 4.dp).semantics { heading() })
 }

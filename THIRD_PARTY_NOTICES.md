@@ -36,6 +36,24 @@ extracted (by `tools/extract_sword_versification.py`) from the numeric `vm[]` ta
 (https://crosswire.org/svn/sword/trunk/include/canon.h, GPL-2.0). Only the numbers
 (factual data) are used; no SWORD source code is included or distributed.
 
+## Android app (`android/`)
+
+The desktop application is unchanged and still has no third-party runtime dependencies. The
+Android app is built with the following libraries, which are compiled into its APK:
+
+| Library | Licence |
+|---|---|
+| Kotlin standard library, kotlinx.coroutines (JetBrains) | Apache-2.0 |
+| AndroidX: Activity, Core, Lifecycle, Compose UI/Foundation/Material 3/Material Icons Core (Google) | Apache-2.0 |
+
+Their licence texts are at https://www.apache.org/licenses/LICENSE-2.0. The few icons that
+Material Icons Core lacks (book, bookmark, copy, list) were drawn for this project. The launcher
+icon is a placeholder drawn for this project.
+
+Used only to build or test the Android app (not distributed in the APK): the Gradle wrapper
+(Apache-2.0), the Android Gradle Plugin and AndroidX Test (Apache-2.0), JUnit 4 (EPL-1.0),
+sqlite-jdbc by Xerial (Apache-2.0) and org.json (public domain).
+
 ## Development-only tools (not distributed)
 
 The browser tests use `puppeteer-core` (Apache-2.0) from npm with a locally installed

@@ -271,8 +271,14 @@ private fun ReaderItem(vm: MainViewModel, view: PassageView, item: Item) {
                         append(" ")
                     }
                     appendVerse(v.text, p.suppliedStyle)
-                    if (selected) pop()
-                    append(" ")
+                    // Keep the space inside the highlight when the next verse is selected too.
+                    if (selected && sel != null && i + 1 in sel && i != item.indices.last()) {
+                        append(" ")
+                        pop()
+                    } else {
+                        if (selected) pop()
+                        append(" ")
+                    }
                     ranges.add(Triple(start, length, i))
                 }
             }
