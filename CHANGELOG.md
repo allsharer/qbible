@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.0 — 2026-11-23
 
 - CLI: `read` may be left out, so `qbible mar 4:15` reads Mark 4:15. A first word that is
   neither a command nor a book gives a clear error (exit status 2).
