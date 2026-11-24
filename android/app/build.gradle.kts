@@ -38,6 +38,10 @@ android {
         buildConfig = true
     }
     sourceSets["main"].assets.srcDir(rootProject.layout.buildDirectory.dir("qbible-assets"))
+    // Instrumented tests read the shared vectors from the repository's spec/.
+    sourceSets["androidTest"].assets.srcDir(layout.buildDirectory.dir("spec-assets"))
+    // ...and the generated differential vectors (see tools/differential_vectors.py).
+    sourceSets["androidTest"].assets.srcDir(rootProject.layout.buildDirectory.dir("qbible-test"))
     packaging {
         resources.excludes += listOf("META-INF/{AL2.0,LGPL2.1}", "META-INF/*.kotlin_module")
     }
@@ -51,7 +55,12 @@ android {
     }
 }
 
-tasks.named("preBuild") { dependsOn(":qbibleData") }
+val copySpecAssets by tasks.registering(Copy::class) {
+    from(File(rootDir.parentFile, "spec")) { include("*.json") }
+    into(layout.buildDirectory.dir("spec-assets/spec"))
+}
+tasks.named("preBuild") { dependsOn(":qbibleData", copySpecAssets) }
+tasks.matching { it.name == "preDebugAndroidTestBuild" }.configureEach { dependsOn(":qbibleTestData") }
 
 dependencies {
     implementation(project(":core"))

@@ -236,7 +236,9 @@ private val FIND_RE = Regex(
         "$S*" +
         "($D{1,3})" +
         "(?:[:.]($D{1,3})(?:$S*[-–—]$S*($D{1,3})(?:[:.]($D{1,3}))?)?)?" +
-        "(?![\\p{L}\\p{N}_:])"
+        // Same set as the look-behind, written in this order because Android's ICU regex
+        // engine rejects "(?![\\p{L}\\p{N}_:])" at this point ("Incorrect Unicode property").
+        "(?![_:\\p{L}\\p{N}])"
 )
 
 data class FoundReference(val start: Int, val end: Int, val text: String, val reference: Reference)
